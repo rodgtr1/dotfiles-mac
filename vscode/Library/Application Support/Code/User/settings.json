@@ -1,0 +1,36 @@
+{
+  "editor.fontSize": 16,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "prettier.requireConfig": true,
+  "prettier.bracketSameLine": true,
+  "[astro]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "debug.console.fontSize": 13,
+  "chat.editor.fontSize": 15,
+  "terminal.integrated.fontSize": 15,
+  "window.zoomLevel": 1,
+  "explorer.compactFolders": false,
+  "git.confirmSync": false,
+  "editor.accessibilitySupport": "off",
+  "workbench.iconTheme": "catppuccin-macchiato",
+  "catppuccin.accentColor": "blue",
+  "catppuccin.colorOverrides": {
+    "mocha": {
+      "base": "#000000",
+      "mantle": "#010101",
+      "crust": "#020202"
+    }
+  },
+
+  "catppuccin.customUIColors": {
+    "mocha": {
+      "statusBar.foreground": "accent"
+    }
+  },
+  "terminal.integrated.enableMultiLinePasteWarning": "never",
+  "git.suggestSmartCommit": false,
+  "workbench.secondarySideBar.defaultVisibility": "hidden"
+}

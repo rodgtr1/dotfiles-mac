@@ -1,0 +1,77 @@
+[theme]
+# Themes: catppuccin-mocha (dark), catppuccin-latte (light), or "auto" to
+# follow the macOS light/dark setting. Drop custom palettes (same JSON schema)
+# into ~/.config/sidekick/themes/ to add your own.
+name = "catppuccin-mocha"
+
+[font]
+# Font family — use any monospace font installed on your system
+family = "JetBrainsMono Nerd Font"
+# Size in points
+size = 17
+# Bold text uses bright palette colors (like most terminals)
+bold_is_bright = true
+
+[cursor]
+# shape: block | ibeam | underline
+shape = "block"
+blink = true
+
+[window]
+# Inner padding around the terminal content (pixels)
+padding = 8
+# Terminal background opacity: 0.0 (fully transparent) to 1.0 (fully opaque)
+opacity = 0.9561514532674773
+# Enable macOS background blur/vibrancy effect
+enable_blur = true
+
+[behavior]
+# Lines of scrollback (-1 for unlimited)
+scrollback_lines = 10000
+# Scroll to bottom when new output appears
+scroll_on_output = false
+# Scroll to bottom when you type
+scroll_on_keystroke = true
+# Clickable URLs
+allow_hyperlinks = true
+# Hide mouse cursor while typing
+mouse_autohide = true
+audible_bell = false
+# Restore tabs and working directories from the previous session on launch
+restore_session = true
+
+[shell]
+# Shell program (leave empty to use $SHELL)
+program = ""
+# Shell arguments
+args = []
+# Default working directory (~ for home)
+default_cwd = "~"
+
+[diff]
+# Number of context lines to show in diffs
+context_lines = 3
+
+[editor]
+# File tree open mode: terminal | builtin
+# terminal opens files in $EDITOR or nvim inside the active terminal.
+# builtin opens files in Sidekick's editor pane with syntax highlighting.
+file_open_mode = "builtin"
+# Built-in editor font family
+font_family = "JetBrainsMono Nerd Font"
+# Wrap long lines in the editor (true = word wrap, false = horizontal scroll)
+word_wrap = true
+# Built-in editor text size in points
+font_size = 17
+# Show hidden files and gitignored files in the file tree (rendered dimmed)
+show_hidden_files = true
+
+[hosts]
+# Show Teleport nodes (from `tsh ls`) in the Hosts sidebar panel
+show_teleport = false
+
+# Global run-panel tasks (available in every project)
+# [[tasks]]
+# name = "My task"
+# cmd  = "echo hello"
+# open_browser = "http://localhost:3000"  # optional: open embedded browser when run
