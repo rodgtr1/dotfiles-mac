@@ -1,4 +1,4 @@
 
 # >>> Codex installer >>>
-export PATH="/Users/travis/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 # <<< Codex installer <<<
