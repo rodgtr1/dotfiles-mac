@@ -21,11 +21,34 @@ symlinks it into the right place.
 
 ## Setup on a new Mac
 
+One command does everything — installs Homebrew, all packages from the
+`Brewfile`, and symlinks every dotfile package with stow:
+
 ```sh
-brew install stow
+xcode-select --install   # only if git isn't available yet
 git clone git@github.com:rodgtr1/dotfiles-mac.git ~/dotfiles-mac
+~/dotfiles-mac/bootstrap.sh
+```
+
+`bootstrap.sh` is idempotent, so it's safe to re-run any time.
+
+### Manual / partial setup
+
+```sh
+brew bundle --file=~/dotfiles-mac/Brewfile   # just the packages
 cd ~/dotfiles-mac
-stow */          # stow every package, or pick: stow zsh starship ...
+stow */                                       # all packages, or: stow zsh starship ...
+```
+
+### Managing packages
+
+The `Brewfile` is the source of truth for installed software.
+
+```sh
+brew bundle --file=~/dotfiles-mac/Brewfile          # install everything listed
+brew bundle check --file=~/dotfiles-mac/Brewfile    # what's missing?
+brew bundle cleanup --file=~/dotfiles-mac/Brewfile  # uninstall anything not listed
+brew bundle dump --force --describe --file=~/dotfiles-mac/Brewfile  # regenerate from this Mac
 ```
 
 ## Common commands (run from `~/dotfiles-mac`)

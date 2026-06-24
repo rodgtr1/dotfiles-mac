@@ -1,8 +1,8 @@
 # Font
-font-family = "JetBrains Mono Nerd Font"
+font-family = "JetBrainsMono Nerd Font"
 # font-family = "JetBrains Mono Medium"
 # font-style = Regular
-font-size = 14
+font-size = 16
 background-opacity = 0.8
 background-blur = true
 
