@@ -12,6 +12,9 @@ success_symbol = "[❯](bold cyan)"
 [nodejs]
 disabled = true
 
+[aws]
+disabled = true
+
 [directory]
 # truncation_length   = 2
 # truncation_symbol   = "…/"
