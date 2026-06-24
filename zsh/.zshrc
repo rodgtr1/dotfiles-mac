@@ -11,8 +11,11 @@ export HOMEBREW_REPOSITORY="/opt/homebrew"
 fpath=("/opt/homebrew/share/zsh/site-functions" "$HOME/.bun" $fpath)
 export INFOPATH="/opt/homebrew/share/info:${INFOPATH:-}"
 
-# PATH additions (cargo, windsurf, bun, lmstudio, go, local bin).
+# PATH additions. Homebrew's bin/sbin first (replaces `eval "$(brew shellenv)"`),
+# then cargo, windsurf, bun, lmstudio, go, local bin.
 path=(
+  "$HOMEBREW_PREFIX/bin"
+  "$HOMEBREW_PREFIX/sbin"
   "$HOME/.cargo/bin"
   "$HOME/.codeium/windsurf/bin"
   "$HOME/.local/bin"
@@ -137,6 +140,10 @@ export VISUAL='nvim'
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias k="kubectl";
 alias n="nvim";
+
+cpp() {
+  claude -p "$*"
+}
 
 # Set up fzf key bindings and fuzzy completion (only if fzf is installed).
 if [[ -t 0 ]] && command -v fzf >/dev/null 2>&1; then
