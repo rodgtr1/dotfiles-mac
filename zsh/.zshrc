@@ -4,6 +4,32 @@
 # Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
+# Homebrew paths without running `brew shellenv` on every shell startup.
+export HOMEBREW_PREFIX="/opt/homebrew"
+export HOMEBREW_CELLAR="/opt/homebrew/Cellar"
+export HOMEBREW_REPOSITORY="/opt/homebrew"
+fpath=("/opt/homebrew/share/zsh/site-functions" "$HOME/.bun" $fpath)
+export INFOPATH="/opt/homebrew/share/info:${INFOPATH:-}"
+
+# PATH additions (cargo, windsurf, bun, lmstudio, go, local bin).
+path=(
+  "$HOME/.cargo/bin"
+  "$HOME/.codeium/windsurf/bin"
+  "$HOME/.local/bin"
+  "$HOME/.bun/bin"
+  "$HOME/.lmstudio/bin"
+  "$HOME/go/bin"
+  $path
+)
+typeset -U path fpath
+export PATH
+export BUN_INSTALL="$HOME/.bun"
+
+# Ghostty sets a TERM that some tools don't recognize.
+if [[ "$TERM_PROGRAM" == "ghostty" ]]; then
+  export TERM=xterm-256color
+fi
+
 # --- Startup speed tweaks ---
 # Skip the slow "insecure completion directories" security audit on every start.
 export ZSH_DISABLE_COMPFIX=true
@@ -112,8 +138,10 @@ export VISUAL='nvim'
 alias k="kubectl";
 alias n="nvim";
 
-# Set up fzf key bindings and fuzzy completion
-source <(fzf --zsh)
+# Set up fzf key bindings and fuzzy completion (only if fzf is installed).
+if [[ -t 0 ]] && command -v fzf >/dev/null 2>&1; then
+  source <(fzf --zsh)
+fi
 
 SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
@@ -125,14 +153,17 @@ export PATH="$HOME/.local/bin:$PATH"
 # define lightweight shims that load nvm the first time you actually run node/npm.
 export NVM_DIR="$HOME/.nvm"
 _load_nvm() {
-  unset -f nvm node npm npx 2>/dev/null
+  unset -f nvm node npm npx corepack yarn pnpm 2>/dev/null
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 }
-nvm()  { _load_nvm; nvm "$@"; }
-node() { _load_nvm; node "$@"; }
-npm()  { _load_nvm; npm "$@"; }
-npx()  { _load_nvm; npx "$@"; }
+nvm()      { _load_nvm; nvm "$@"; }
+node()     { _load_nvm; node "$@"; }
+npm()      { _load_nvm; npm "$@"; }
+npx()      { _load_nvm; npx "$@"; }
+corepack() { _load_nvm; corepack "$@"; }
+yarn()     { _load_nvm; yarn "$@"; }
+pnpm()     { _load_nvm; pnpm "$@"; }
 
 # Sidekick shell integration
 [[ "$TERM_PROGRAM" == "Sidekick" ]] && source "$HOME/.config/sidekick/shell-integration/sidekick.zsh"
