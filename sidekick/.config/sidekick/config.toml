@@ -102,3 +102,12 @@ name = "catppuccin-mocha"
 # show_teleport: true | false  (show Teleport hosts in the sidebar).
 show_teleport = false
 
+[approval]
+# How agent edits (the Write/Edit/MultiEdit PreToolUse hook) are reviewed:
+#   "ask"  — show Sidekick's diff-approval popup for every edit (default)
+#   "auto" — approve edits silently, no popup
+# Any unrecognized value falls back to "ask". Applies live (no relaunch needed).
+# You can also toggle this per session from the menu — View ▸ Auto-approve Agent
+# Edits (⇧⌘A); the menu reflects the effective state and resets on relaunch.
+mode = "ask"
+

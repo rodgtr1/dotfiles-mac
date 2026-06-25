@@ -168,21 +168,16 @@ eval "$(starship init zsh)"
 
 export PATH="$HOME/.local/bin:$PATH"
 
-# Lazy-load nvm: sourcing nvm.sh eagerly cost ~0.3s on every shell. Instead we
-# define lightweight shims that load nvm the first time you actually run node/npm.
-export NVM_DIR="$HOME/.nvm"
-_load_nvm() {
-  unset -f nvm node npm npx corepack yarn pnpm 2>/dev/null
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+# node/npm/npx/etc. are real binaries on PATH (added in .zshenv, no nvm.sh cost).
+# Only the `nvm` management command itself needs nvm.sh, so load it lazily the
+# first time it's actually invoked. This shim is self-replacing: nvm.sh defines
+# the real `nvm`, so there's no recursion.
+nvm() {
+  unset -f nvm
+  [[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"
+  [[ -s "$NVM_DIR/bash_completion" ]] && \. "$NVM_DIR/bash_completion"
+  nvm "$@"
 }
-nvm()      { _load_nvm; nvm "$@"; }
-node()     { _load_nvm; node "$@"; }
-npm()      { _load_nvm; npm "$@"; }
-npx()      { _load_nvm; npx "$@"; }
-corepack() { _load_nvm; corepack "$@"; }
-yarn()     { _load_nvm; yarn "$@"; }
-pnpm()     { _load_nvm; pnpm "$@"; }
 
 # Sidekick shell integration
 [[ "$TERM_PROGRAM" == "Sidekick" ]] && source "$HOME/.config/sidekick/shell-integration/sidekick.zsh"
