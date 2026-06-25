@@ -1,77 +1,104 @@
-[theme]
-# Themes: catppuccin-mocha (dark), catppuccin-latte (light), or "auto" to
-# follow the macOS light/dark setting. Drop custom palettes (same JSON schema)
-# into ~/.config/sidekick/themes/ to add your own.
-name = "catppuccin-mocha"
+# Sidekick configuration — ~/.config/sidekick/config.toml (stowed from dotfiles-mac)
+#
+# IMPORTANT: Sidekick's parser is strict — EVERY key below must be present and
+# uncommented. Commenting one out makes the whole file fail to parse, and
+# Sidekick silently falls back to its built-in defaults (Menlo, size 13).
+# To change a setting, edit the VALUE here; never delete or comment a key.
+#
+# Also: changing settings in the in-app Preferences panel rewrites this file
+# atomically, which replaces the stow symlink with a real file (and strips these
+# comments). Prefer editing this file directly, then relaunch Sidekick.
+#
+# The "valid values" comments below are the authoritative choices the app
+# offers (i.e. what the Preferences dropdowns expose). Free-form string fields
+# accept anything, but enum-like fields silently fall back to a default when
+# given an unrecognized value (noted per-field).
 
 [font]
-# Font family — use any monospace font installed on your system
+# family: any installed font name (free-form). The Preferences dropdown lists
+#   monospaced families only. On THIS machine the dropdown currently offers:
+#     Andale Mono, Arial Unicode MS, Courier New,
+#     FiraCode Nerd Font, FiraCode Nerd Font Mono, FiraCode Nerd Font Propo,
+#     Hack Nerd Font, Hack Nerd Font Mono, Hack Nerd Font Propo,
+#     JetBrains Mono,
+#     JetBrainsMono Nerd Font, JetBrainsMono Nerd Font Mono, JetBrainsMono Nerd Font Propo,
+#     JetBrainsMonoNL Nerd Font, JetBrainsMonoNL Nerd Font Mono, JetBrainsMonoNL Nerd Font Propo,
+#     Menlo,
+#     MesloLG{L,M,S}{,DZ} Nerd Font {,Mono,Propo} variants,
+#     Monaco, PT Mono, SF Mono
+#   (To regenerate this list: open Preferences ▸ Terminal ▸ Font, or run the
+#    fonts.swift snippet that mirrors the app's NSFontManager filter.)
+# size: integer points. Preferences slider range: 8–24.
+# bold_is_bright: true | false
 family = "JetBrainsMono Nerd Font"
-# Size in points
 size = 17
-# Bold text uses bright palette colors (like most terminals)
 bold_is_bright = true
 
 [cursor]
-# shape: block | ibeam | underline
+# shape: "block" | "ibeam" | "underline"  (unrecognized values are accepted
+#   as-is but behave unpredictably — stick to these three).
+# blink: true | false
 shape = "block"
 blink = true
 
 [window]
-# Inner padding around the terminal content (pixels)
-padding = 8
-# Terminal background opacity: 0.0 (fully transparent) to 1.0 (fully opaque)
-opacity = 0.9561514532674773
-# Enable macOS background blur/vibrancy effect
+# opacity: 0.0–1.0 double (Preferences slider clamps to 0.3–1.0). Only visible
+#   when enable_blur = true.
+# enable_blur: true | false  (translucent terminal with desktop blur behind).
+# padding: integer pixels of inset around the terminal content.
+opacity = 0.9
 enable_blur = true
+padding = 8
 
 [behavior]
-# Lines of scrollback (-1 for unlimited)
+# scrollback_lines: integer; use -1 for unlimited.
+# all other keys here are true | false.
 scrollback_lines = 10000
-# Scroll to bottom when new output appears
 scroll_on_output = false
-# Scroll to bottom when you type
 scroll_on_keystroke = true
-# Clickable URLs
 allow_hyperlinks = true
-# Hide mouse cursor while typing
 mouse_autohide = true
 audible_bell = false
-# Restore tabs and working directories from the previous session on launch
 restore_session = true
 
 [shell]
-# Shell program (leave empty to use $SHELL)
+# program: shell path (free-form); "" = use the $SHELL environment variable.
+# args: array of strings passed to the shell, e.g. ["-l"].
+# default_cwd: starting directory (free-form path); "~" expands to home.
 program = ""
-# Shell arguments
 args = []
-# Default working directory (~ for home)
 default_cwd = "~"
 
 [diff]
-# Number of context lines to show in diffs
+# context_lines: integer number of unchanged lines shown around each change.
 context_lines = 3
 
 [editor]
-# File tree open mode: terminal | builtin
-# terminal opens files in $EDITOR or nvim inside the active terminal.
-# builtin opens files in Sidekick's editor pane with syntax highlighting.
+# file_open_mode: "terminal" (open files in the terminal editor) |
+#   "builtin" (open in Sidekick's built-in editor). Any other value falls back
+#   to terminal mode.
+# font_family: any font name (free-form); "" = system default monospace.
+# font_size: integer points. Preferences slider range: 8–32.
+# word_wrap, show_hidden_files: true | false
 file_open_mode = "builtin"
-# Built-in editor font family
 font_family = "JetBrainsMono Nerd Font"
-# Wrap long lines in the editor (true = word wrap, false = horizontal scroll)
-word_wrap = true
-# Built-in editor text size in points
 font_size = 17
-# Show hidden files and gitignored files in the file tree (rendered dimmed)
+word_wrap = true
 show_hidden_files = true
 
+[theme]
+# name: one of the built-in themes, "auto", or a custom theme (see below).
+#   Built-in themes:
+#     "catppuccin-mocha"  — dark  (this is also the fallback for unknown names)
+#     "catppuccin-latte"  — light
+#     "min-light"         — light
+#   "auto" follows the macOS system light/dark setting.
+#   Custom themes: drop a *.json file in ~/.config/sidekick/themes/ and use its
+#     name here (custom names cannot shadow the built-ins above).
+#   NOTE: an unrecognized/misspelled name silently falls back to catppuccin-mocha.
+name = "catppuccin-mocha"
+
 [hosts]
-# Show Teleport nodes (from `tsh ls`) in the Hosts sidebar panel
+# show_teleport: true | false  (show Teleport hosts in the sidebar).
 show_teleport = false
 
-# Global run-panel tasks (available in every project)
-# [[tasks]]
-# name = "My task"
-# cmd  = "echo hello"
-# open_browser = "http://localhost:3000"  # optional: open embedded browser when run

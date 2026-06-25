@@ -109,6 +109,54 @@ cpp() {
   claude -p "$*"
 }
 
+# Re-assert all dotfiles symlinks. Some apps (Sidekick, Raycast, VS Code) save
+# config via atomic write (temp file + rename), which replaces the stow symlink
+# with a real file. `restow` moves any such foreign real file into a single
+# backup dir (~/.dotfiles-backup, overwritten each run), then re-stows so the
+# dotfiles version is authoritative again.
+restow() {
+  local backup="$HOME/.dotfiles-backup"
+  local f rel tgt pdir pkg drift backed_up=0
+  # Resolve to a physical absolute path with zsh's :A modifier. Do NOT use
+  # $(cd ... && pwd -P): a chpwd hook (Sidekick/terminal OSC-7 cwd reporting)
+  # emits escape sequences on every cd, and command substitution captures them
+  # into the variable. That pollution is what made the folded-dir guard below
+  # fail and move the repo's own source files into the backup.
+  local dotfiles="$HOME/dotfiles-mac"; dotfiles=${dotfiles:A}
+  [ -n "$dotfiles" ] && [ -d "$dotfiles" ] || { echo "restow: dotfiles dir not found" >&2; return 1; }
+  ( cd "$dotfiles" || return 1
+    for pkg in */; do
+      pkg="${pkg%/}"
+      drift=0
+      # Back up only genuine FOREIGN real files that would block stow. Skip
+      # anything whose real parent already resolves into the repo — those are
+      # reached through a stow-folded directory symlink, and moving them would
+      # yank files straight out of the repo.
+      while IFS= read -r f; do
+        rel="${f#"$pkg"/}"
+        tgt="$HOME/$rel"
+        [ -L "$tgt" ] && continue                 # our own symlink — leave it
+        [ -e "$tgt" ] || continue                 # not present — stow will link
+        pdir=${tgt:h:A}                                   # physical parent dir, no cd/hook
+        case "$pdir/" in "$dotfiles"/*) continue ;; esac   # reached via folded dir
+        mkdir -p "$backup/$(dirname "$rel")"
+        mv "$tgt" "$backup/$rel" && echo "restow: backed up $rel"
+        drift=1; backed_up=1
+      done < <(find "$pkg" -type f)
+      # Only (re)stow packages that actually drifted. stow --restow deletes and
+      # recreates symlinks; doing that to a HEALTHY package briefly removes the
+      # config file, which can knock a running app (e.g. Sidekick) back to its
+      # built-in defaults. Healthy links are left untouched.
+      if [ "$drift" -eq 1 ]; then
+        stow --restow --target="$HOME" "$pkg" && echo "restow: re-linked $pkg" \
+          || echo "restow: $pkg failed" >&2
+      fi
+    done
+    if [ "$backed_up" -eq 0 ]; then echo "restow: nothing drifted — links healthy"
+    else echo "restow: foreign files saved under $backup"; fi )
+}
+
+
 # Set up fzf key bindings and fuzzy completion (only if fzf is installed).
 if [[ -t 0 ]] && command -v fzf >/dev/null 2>&1; then
   source <(fzf --zsh)
@@ -138,3 +186,9 @@ pnpm()     { _load_nvm; pnpm "$@"; }
 
 # Sidekick shell integration
 [[ "$TERM_PROGRAM" == "Sidekick" ]] && source "$HOME/.config/sidekick/shell-integration/sidekick.zsh"
+
+# Machine-specific local config
+# Not version controlled
+if [[ -f "$HOME/.zshrc.local" ]]; then
+  source "$HOME/.zshrc.local"
+fi
