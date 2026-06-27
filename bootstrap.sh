@@ -86,10 +86,25 @@ log "Linking dotfiles with stow..."
 cd "$DOTFILES"
 for pkg in */; do
   pkg="${pkg%/}"
+  [ "$pkg" = "skills" ] && continue   # skills uses custom targets; handled in step 5
   log "  stow $pkg"
   backup_conflicts "$pkg"
   stow --restow --target="$HOME" "$pkg" || warn "  stow $pkg failed — skipping."
 done
+
+# 5. Skills — shared Claude/Codex Agent-Skills package.
+# Unlike the packages above (which target $HOME), skills link into each tool's
+# own skills dir. Pre-create the targets as real dirs so stow links each skill
+# individually instead of folding the whole dir — folding would shadow Codex's
+# built-in ~/.codex/skills/.system.
+if [ -d "$DOTFILES/skills" ]; then
+  log "Linking skills into Claude and Codex..."
+  for tgt in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
+    mkdir -p "$tgt"
+    stow --restow --dir="$DOTFILES" --target="$tgt" skills \
+      || warn "  stow skills -> $tgt failed — skipping."
+  done
+fi
 
 log "All done."
 if [ "$backed_up" -ne 0 ]; then
