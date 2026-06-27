@@ -1,5 +1,3 @@
-. "$HOME/.cargo/env"
-
 # Put the active nvm node on PATH directly. This avoids sourcing nvm.sh (~0.3s)
 # while still making node/npm/npx real binaries in EVERY shell — including
 # non-interactive and agent shells that never load .zshrc. (nvm.sh just adds this

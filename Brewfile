@@ -24,6 +24,7 @@ brew "sops"            # secrets encryption
 brew "starship"        # shell prompt
 brew "stow"            # dotfiles symlink manager
 brew "uv"              # python package/project manager
+brew "zsh-autosuggestions"  # grey type-ahead suggestions from history (sourced in .zshrc)
 
 # --- Kubernetes ---
 brew "kubernetes-cli"   # kubectl
@@ -39,6 +40,8 @@ cask "raycast"          # launcher / productivity
 cask "ghostty"          # terminal (config in ./ghostty)
 cask "visual-studio-code" # editor (config in ./vscode)
 cask "zed"              # editor (config in ./zed)
+cask "claude-code"      # Anthropic's agentic coding CLI
+cask "codex"            # OpenAI's coding agent CLI
 
 # --- Fonts ---
 cask "font-jetbrains-mono-nerd-font"

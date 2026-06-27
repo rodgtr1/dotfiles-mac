@@ -89,7 +89,10 @@ for pkg in */; do
   [ "$pkg" = "skills" ] && continue   # skills uses custom targets; handled in step 5
   log "  stow $pkg"
   backup_conflicts "$pkg"
-  stow --restow --target="$HOME" "$pkg" || warn "  stow $pkg failed — skipping."
+  # --no-folding links individual files rather than folding a whole dir into a
+  # single symlink. This keeps apps that rewrite their config dir (nvim plugins,
+  # zed, raycast) from deleting files straight out of this repo.
+  stow --no-folding --restow --target="$HOME" "$pkg" || warn "  stow $pkg failed — skipping."
 done
 
 # 5. Skills — shared Claude/Codex Agent-Skills package.

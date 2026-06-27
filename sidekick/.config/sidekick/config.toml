@@ -1,127 +1,48 @@
-# Sidekick configuration — ~/.config/sidekick/config.toml (stowed from dotfiles-mac)
-#
-# IMPORTANT: Sidekick's parser is strict — EVERY key below must be present and
-# uncommented. Commenting one out makes the whole file fail to parse, and
-# Sidekick silently falls back to its built-in defaults (Menlo, size 13).
-# To change a setting, edit the VALUE here; never delete or comment a key.
-#
-# Also: changing settings in the in-app Preferences panel rewrites this file
-# atomically, which replaces the stow symlink with a real file (and strips these
-# comments). Prefer editing this file directly, then relaunch Sidekick.
-#
-# The "valid values" comments below are the authoritative choices the app
-# offers (i.e. what the Preferences dropdowns expose). Free-form string fields
-# accept anything, but enum-like fields silently fall back to a default when
-# given an unrecognized value (noted per-field).
-
-[font]
-# family: any installed font name (free-form). The Preferences dropdown lists
-#   monospaced families only. On THIS machine the dropdown currently offers:
-#     Andale Mono, Arial Unicode MS, Courier New,
-#     FiraCode Nerd Font, FiraCode Nerd Font Mono, FiraCode Nerd Font Propo,
-#     Hack Nerd Font, Hack Nerd Font Mono, Hack Nerd Font Propo,
-#     JetBrains Mono,
-#     JetBrainsMono Nerd Font, JetBrainsMono Nerd Font Mono, JetBrainsMono Nerd Font Propo,
-#     JetBrainsMonoNL Nerd Font, JetBrainsMonoNL Nerd Font Mono, JetBrainsMonoNL Nerd Font Propo,
-#     Menlo,
-#     MesloLG{L,M,S}{,DZ} Nerd Font {,Mono,Propo} variants,
-#     Monaco, PT Mono, SF Mono
-#   (To regenerate this list: open Preferences ▸ Terminal ▸ Font, or run the
-#    fonts.swift snippet that mirrors the app's NSFontManager filter.)
-# size: integer points. Preferences slider range: 8–24.
-# bold_is_bright: true | false
-family = "JetBrainsMono Nerd Font"
-size = 17
-bold_is_bright = true
-
-[cursor]
-# shape: "block" | "ibeam" | "underline"  (unrecognized values are accepted
-#   as-is but behave unpredictably — stick to these three).
-# blink: true | false
-shape = "block"
-blink = true
-
-[window]
-# opacity: 0.0–1.0 double (Preferences slider clamps to 0.3–1.0). Only visible
-#   when enable_blur = true.
-# enable_blur: true | false  (translucent terminal with desktop blur behind).
-# padding: integer pixels of inset around the terminal content.
-opacity = 0.9
-enable_blur = true
-padding = 8
+[approval]
+always_ask = []
+auto_allow = []
+mode = 'auto'
 
 [behavior]
-# scrollback_lines: integer; use -1 for unlimited.
-# all other keys here are true | false.
-scrollback_lines = 10000
-scroll_on_output = false
-scroll_on_keystroke = true
 allow_hyperlinks = true
-mouse_autohide = true
 audible_bell = false
-restore_session = true
+mouse_autohide = true
+restore_session = false
+scroll_on_keystroke = true
+scroll_on_output = false
+scrollback_lines = 10000
 
-[shell]
-# program: shell path (free-form); "" = use the $SHELL environment variable.
-# args: array of strings passed to the shell, e.g. ["-l"].
-# default_cwd: starting directory (free-form path); "~" expands to home.
-program = ""
-args = []
-default_cwd = "~"
+[cursor]
+blink = true
+shape = 'block'
 
 [diff]
-# context_lines: integer number of unchanged lines shown around each change.
 context_lines = 3
 
 [editor]
-# file_open_mode: "terminal" (open files in the terminal editor) |
-#   "builtin" (open in Sidekick's built-in editor). Any other value falls back
-#   to terminal mode.
-# font_family: any font name (free-form); "" = system default monospace.
-# font_size: integer points. Preferences slider range: 8–32.
-# word_wrap, show_hidden_files: true | false
-file_open_mode = "builtin"
-font_family = "JetBrainsMono Nerd Font"
+file_open_mode = 'builtin'
+font_family = 'JetBrainsMono Nerd Font'
 font_size = 17
-word_wrap = true
 show_hidden_files = true
+word_wrap = true
 
-[theme]
-# name: one of the built-in themes, "auto", or a custom theme (see below).
-#   Built-in themes:
-#     "catppuccin-mocha"  — dark  (this is also the fallback for unknown names)
-#     "catppuccin-latte"  — light
-#     "min-light"         — light
-#   "auto" follows the macOS system light/dark setting.
-#   Custom themes: drop a *.json file in ~/.config/sidekick/themes/ and use its
-#     name here (custom names cannot shadow the built-ins above).
-#   NOTE: an unrecognized/misspelled name silently falls back to catppuccin-mocha.
-name = "catppuccin-mocha"
+[font]
+bold_is_bright = true
+family = 'JetBrainsMono Nerd Font'
+size = 17
 
 [hosts]
-# show_teleport: true | false  (show Teleport hosts in the sidebar).
 show_teleport = false
 
-[approval]
-# How agent edits (the Write/Edit/MultiEdit PreToolUse hook) are reviewed:
-#   "ask"  — show Sidekick's diff-approval popup for every edit (default)
-#   "auto" — approve edits silently, no popup
-# Any unrecognized value falls back to "ask". Applies live (no relaunch needed).
-# You can also toggle this per session from the menu — View ▸ Auto-approve Agent
-# Edits (⇧⌘A); the menu reflects the effective state and resets on relaunch.
-mode = "auto"
-# Glob rules layered on top of `mode`, matched against each edited file path.
-# Patterns match anywhere in the path on a "/" boundary unless they start with
-# "/" (absolute) or "~". Wildcards: "*" stays within one path segment, "**"
-# spans directories, "?" matches one character. Both default to [] (no rules).
-#
-# auto_allow: approve these silently EVEN WHEN mode = "ask". Has no effect while
-#   mode = "auto" (everything is already auto-approved). Example values:
-#     auto_allow = ["Sources/**", "docs/**"]
-auto_allow = []
-# always_ask: ALWAYS show the popup for these, even when mode = "auto" or after
-#   an in-popup "Approve & remember" grant. Highest precedence — use it to keep
-#   reviewing secrets regardless of mode. Example values:
-#     always_ask = [".env", "**/secrets/**", "*.pem"]
-always_ask = []
+[shell]
+args = []
+default_cwd = '~'
+program = ''
 
+[theme]
+name = 'catppuccin-mocha'
+
+[window]
+enable_blur = true
+opacity = 0.95645065539513685
+padding = 8

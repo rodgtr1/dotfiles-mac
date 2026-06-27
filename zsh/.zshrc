@@ -1,9 +1,6 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
-# Path to your Oh My Zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
-
 # Homebrew paths without running `brew shellenv` on every shell startup.
 export HOMEBREW_PREFIX="/opt/homebrew"
 export HOMEBREW_CELLAR="/opt/homebrew/Cellar"
@@ -33,49 +30,12 @@ if [[ "$TERM_PROGRAM" == "ghostty" ]]; then
   export TERM=xterm-256color
 fi
 
-# --- Startup speed tweaks ---
-# Skip the slow "insecure completion directories" security audit on every start.
-export ZSH_DISABLE_COMPFIX=true
-# Don't run the update-check git fetch on startup.
-zstyle ':omz:update' mode disabled
-
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time Oh My Zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="robbyrussell"
-
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
-
-# --- Optional Oh My Zsh settings (uncomment to enable) ---
-# CASE_SENSITIVE="true"                    # <--- case-sensitive tab completion
-# HYPHEN_INSENSITIVE="true"                # <--- treat _ and - as interchangeable in completion
-# zstyle ':omz:update' frequency 13        # <--- how often (days) to auto-update OMZ
-# DISABLE_MAGIC_FUNCTIONS="true"           # <--- fix mangled pasted URLs/text
-# DISABLE_LS_COLORS="true"                 # <--- turn off colored ls output
-# DISABLE_AUTO_TITLE="true"                # <--- stop OMZ from setting the terminal title
-# ENABLE_CORRECTION="true"                 # <--- "did you mean...?" command autocorrection
-# COMPLETION_WAITING_DOTS="true"           # <--- show dots while completion loads
-# DISABLE_UNTRACKED_FILES_DIRTY="true"     # <--- faster git status in huge repos (ignores untracked)
-# HIST_STAMPS="mm/dd/yyyy"                 # <--- add timestamps to `history` output
-# ZSH_CUSTOM=/path/to/new-custom-folder    # <--- use a different custom-config folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-# Dropped the heavy `git` plugin (its aliases went unused; starship already shows
-# git status, and zsh ships its own git completion).
-plugins=(
-  zsh-autosuggestions
-)
-
-source $ZSH/oh-my-zsh.sh
+# --- Completion system ---
+# Oh My Zsh used to run this for us. Initialize zsh's own completion system
+# directly. `-u` skips the slow "insecure completion directories" security audit
+# on every start (the old ZSH_DISABLE_COMPFIX=true). Homebrew's site-functions
+# (added to fpath above) and zsh's bundled completions (git, etc.) are picked up.
+autoload -Uz compinit && compinit -u
 
 # User configuration
 
@@ -91,17 +51,7 @@ export VISUAL='nvim'
 # Compilation flags
 # export ARCHFLAGS="-arch $(uname -m)"
 
-# Set personal aliases, overriding those provided by Oh My Zsh libs,
-# plugins, and themes. Aliases can be placed here, though Oh My Zsh
-# users are encouraged to define aliases within a top-level file in
-# the $ZSH_CUSTOM folder, with .zsh extension. Examples:
-# - $ZSH_CUSTOM/aliases.zsh
-# - $ZSH_CUSTOM/macos.zsh
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
+# Personal aliases. For a full list of active aliases, run `alias`.
 alias k="kubectl";
 alias n="nvim";
 
@@ -127,6 +77,7 @@ restow() {
   ( cd "$dotfiles" || return 1
     for pkg in */; do
       pkg="${pkg%/}"
+      [ "$pkg" = "skills" ] && continue   # skills use custom targets, not $HOME
       drift=0
       # Back up only genuine FOREIGN real files that would block stow. Skip
       # anything whose real parent already resolves into the repo — those are
@@ -148,7 +99,9 @@ restow() {
       # config file, which can knock a running app (e.g. Sidekick) back to its
       # built-in defaults. Healthy links are left untouched.
       if [ "$drift" -eq 1 ]; then
-        stow --restow --target="$HOME" "$pkg" && echo "restow: re-linked $pkg" \
+        # --no-folding: keep per-file symlinks; a plain restow would re-fold the
+        # package into one dir symlink, the very thing that let apps delete repo files.
+        stow --no-folding --restow --target="$HOME" "$pkg" && echo "restow: re-linked $pkg" \
           || echo "restow: $pkg failed" >&2
       fi
     done
@@ -187,3 +140,8 @@ nvm() {
 if [[ -f "$HOME/.zshrc.local" ]]; then
   source "$HOME/.zshrc.local"
 fi
+
+# Grey type-ahead suggestions from history (replaces the old oh-my-zsh plugin).
+# Use the hardcoded prefix instead of $(brew --prefix) to avoid a subprocess on
+# every shell start. Must be sourced after compinit.
+source "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
