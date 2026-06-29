@@ -19,9 +19,13 @@ same model agreeing with itself.
 Sidekick panes are readable. `sidekick-ctl pane read <id> --source recent` returns
 **clean, ANSI-stripped text** from a 64 KB rolling buffer. So:
 
-- **No output file.** The reviewer runs in the pane (the user watches it live). It
-  wraps its verdict in markers; you `wait output` on the end-marker, then
-  `pane read` and slice out the marked block. No redirect, no reading a file tail.
+- **No output file.** The reviewer runs in the pane (the user watches it live). You
+  wait for the pane's *agent status* to go `working` then `done` (the same Stop
+  signal the Agent Panel shows) — **NOT** for the verdict marker. The reviewer
+  echoes your whole prompt (markers included) the instant it starts, so an
+  output-wait on the marker returns immediately on that echo, long before any real
+  verdict exists. Once the pane is `done`, `pane read` and slice the marked block.
+  The marker is for *extraction only*, never for detecting completion.
 - **No model guessing.** Use the reviewer CLI's own default model. Passing a model
   id is the #1 cause of failure ("model not supported for this account"). Only
   pass one if the user explicitly names it.
@@ -124,25 +128,43 @@ sidekick-ctl pane run "$REVIEWER_PANE" 'codex exec "$(cat /tmp/so-'$RID'.md)"'
 claude variant: `'claude -p "$(cat /tmp/so-'$RID'.md)"'`. Add `-m`/`--model` ONLY
 if the user named a model. The user sees the reviewer think live in the pane.
 
-## 5. Wait for the verdict, then read it off the pane
+## 5. Wait for the reviewer to FINISH, then read its verdict
 
-Block until the end-marker prints (generous timeout — real reviews take minutes):
+Do **not** wait on the verdict marker. The reviewer echoes your entire prompt
+(markers and all) the moment it starts, so `wait output "…SECOND_OPINION>>>>>"`
+returns within a second on that echo — before any reasoning has happened. You then
+slice the prompt's literal template text instead of a verdict. Wait on the pane's
+**agent status** instead, in two phases so a stale status can't fool you:
 
 ```sh
-sidekick-ctl wait output "$REVIEWER_PANE" "SECOND_OPINION>>>>>" --timeout 600000
+# 1) Confirm the reviewer actually STARTED. Guards against the pane's pre-launch
+#    'idle' and against a leftover 'done' from a previous review in a reused pane.
+sidekick-ctl wait agent-status "$REVIEWER_PANE" working --timeout 60000
+
+# 2) Now block until it FINISHES — the real Stop signal (same 'done' the Agent
+#    Panel shows). Generous timeout; real reviews take minutes:
+sidekick-ctl wait agent-status "$REVIEWER_PANE" done --timeout 600000
 ```
 
-`wait` exits 1 on timeout — then read the pane to see what happened and report it
-rather than assuming a verdict. On success, read clean text and slice the block:
+`wait` exits non-zero on timeout. If phase 1 times out the launch likely failed —
+`pane read` and report what you see rather than assuming a verdict. Only after
+phase 2 returns `done` do you read and slice the block:
 
 ```sh
 sidekick-ctl pane read "$REVIEWER_PANE" --source recent --lines 400 \
   | awk '/<<<<<SECOND_OPINION/{c=""; f=1; next} /SECOND_OPINION>>>>>/{f=0} f{c=c$0"\n"} END{printf "%s", c}'
 ```
 
-Take the LAST marked block (the prompt echo contains the marker text earlier; the
-awk above keeps resetting so the final block wins). If the markers never appear
-(reviewer errored or derailed), read the last ~100 lines raw and report that.
+Take the LAST marked block (the prompt echo holds the markers earlier; the awk
+resets on each opening marker so the final, real block wins). If the markers never
+appear (reviewer errored or derailed), read the last ~100 lines raw and report that.
+
+> **Fallback — non-agent CLIs (plain `ollama run`):** these don't drive agent
+> status, so the two-phase wait will just time out. For them only, block on the
+> marker instead — `sidekick-ctl wait output "$REVIEWER_PANE" "SECOND_OPINION>>>>>"
+> --timeout 600000` — then slice and take the LAST block. `codex exec` and
+> `claude -p` both drive agent status (via their Stop hook), so prefer the status
+> wait for those.
 
 ## 6. Clean up and report
 
