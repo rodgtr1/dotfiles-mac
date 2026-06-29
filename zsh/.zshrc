@@ -77,7 +77,7 @@ restow() {
   ( cd "$dotfiles" || return 1
     for pkg in */; do
       pkg="${pkg%/}"
-      [ "$pkg" = "skills" ] && continue   # skills use custom targets, not $HOME
+      [ "$pkg" = "skills" ] && continue   # custom targets, not $HOME — handled below
       drift=0
       # Back up only genuine FOREIGN real files that would block stow. Skip
       # anything whose real parent already resolves into the repo — those are
@@ -105,6 +105,34 @@ restow() {
           || echo "restow: $pkg failed" >&2
       fi
     done
+    # skills: shared Claude/Codex Agent-Skills package. Unlike the packages
+    # above it links into each tool's own skills dir, not $HOME, and each skill
+    # links as its own dir symlink (target pre-created as a real dir so stow
+    # won't fold the whole package and shadow Codex's built-in .system).
+    # We always restow here rather than drift-gate: unlinking a skill briefly is
+    # harmless (the tools don't hold skills open the way a running app holds its
+    # config), and this also performs the first link after the one-shot bootstrap.
+    if [ -d "$dotfiles/skills" ]; then
+      local sktgt skl skrel
+      for sktgt in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
+        mkdir -p "$sktgt"
+        skrel="${sktgt#"$HOME"/}"
+        # Back up only a FOREIGN real entry sharing a name with one of our
+        # skills that would block its link; our own symlinks are left alone.
+        for skl in "$dotfiles"/skills/*/; do
+          skl=${skl%/}; skl=${skl:t}
+          tgt="$sktgt/$skl"
+          [ -L "$tgt" ] && continue
+          [ -e "$tgt" ] || continue
+          mkdir -p "$backup/$skrel"
+          mv "$tgt" "$backup/$skrel/$skl" && echo "restow: backed up $skrel/$skl"
+          backed_up=1
+        done
+        stow --restow --dir="$dotfiles" --target="$sktgt" skills \
+          && echo "restow: re-linked skills -> $skrel" \
+          || echo "restow: skills -> $sktgt failed" >&2
+      done
+    fi
     if [ "$backed_up" -eq 0 ]; then echo "restow: nothing drifted — links healthy"
     else echo "restow: foreign files saved under $backup"; fi )
 }
@@ -122,8 +150,30 @@ eval "$(starship init zsh)"
 export PATH="$HOME/.local/bin:$PATH"
 
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # Load NVM
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # Load NVM bash completion
+# Put nvm's *current default* node on PATH directly, without sourcing nvm.sh —
+# keeps shell startup ~0ms instead of ~350ms. Resolves whatever `nvm alias
+# default` points to (follows lts/* and codename aliases), so it always tracks
+# the version you've set as default. Nothing is hardcoded.
+() {
+  local v=default depth=0
+  while [[ -f "$NVM_DIR/alias/$v" ]] && (( depth < 10 )); do
+    v="$(<"$NVM_DIR/alias/$v")"; (( depth++ ))
+  done
+  local bin=( "$NVM_DIR"/versions/node/$v/bin(N) )
+  # Fallback for a partial default (e.g. "24"): normalize to a v-prefix and
+  # numeric-sort (Nn) so ${bin[-1]} is the highest version, not the lexically
+  # last one (v24.9.0 would sort after v24.18.0 under a plain glob).
+  (( $#bin )) || bin=( "$NVM_DIR"/versions/node/v${v#v}*/bin(Nn) )
+  (( $#bin )) && export PATH="${bin[-1]}:$PATH"
+}
+# Load full nvm lazily — only the first time you run `nvm` (e.g. to switch
+# versions). node/npm/npx already work from the block above.
+nvm() {
+  unset -f nvm
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+  nvm "$@"
+}
 
 # Sidekick shell integration
 [[ "$TERM_PROGRAM" == "Sidekick" ]] && source "$HOME/.config/sidekick/shell-integration/sidekick.zsh"
