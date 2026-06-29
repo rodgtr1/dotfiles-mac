@@ -121,16 +121,9 @@ eval "$(starship init zsh)"
 
 export PATH="$HOME/.local/bin:$PATH"
 
-# node/npm/npx/etc. are real binaries on PATH (added in .zshenv, no nvm.sh cost).
-# Only the `nvm` management command itself needs nvm.sh, so load it lazily the
-# first time it's actually invoked. This shim is self-replacing: nvm.sh defines
-# the real `nvm`, so there's no recursion.
-nvm() {
-  unset -f nvm
-  [[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"
-  [[ -s "$NVM_DIR/bash_completion" ]] && \. "$NVM_DIR/bash_completion"
-  nvm "$@"
-}
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # Load NVM
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # Load NVM bash completion
 
 # Sidekick shell integration
 [[ "$TERM_PROGRAM" == "Sidekick" ]] && source "$HOME/.config/sidekick/shell-integration/sidekick.zsh"
