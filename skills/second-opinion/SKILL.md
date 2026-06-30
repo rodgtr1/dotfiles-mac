@@ -177,6 +177,26 @@ Present the opinion inline, attributed (which provider/model) with the verdict
 (AGREE / DISAGREE / PARTIALLY AGREE) up front. Do NOT paraphrase away disagreement
 — if the reviewer found a real problem, surface it and act on it.
 
+## 7. Weigh it — do NOT blindly accept
+
+The second opinion is *input*, not a verdict you must obey. After reading it, you
+(the original agent) explicitly evaluate each point the reviewer raised and decide
+for yourself whether to adopt it. A second opinion is exactly that — an opinion. It
+can be wrong, miss context you have, or misread the intent.
+
+For each substantive suggestion or objection, state your own position:
+
+- **Accept** — you agree it's right; explain briefly why and apply it.
+- **Reject** — you disagree; **give the concrete reason** (it misread the code,
+  lacks context X, the tradeoff is intentional, it's factually wrong, etc.). Do not
+  reject just to defend your original answer — only when you have a real reason.
+- **Partially accept** — take the valid part, explain what you're leaving and why.
+
+Then give a short final decision: what you're changing, what you're keeping as-is,
+and the reasoning. If the reviewer changed your mind, say so plainly; if it didn't,
+say why its points didn't hold up. The goal is a reasoned synthesis, not automatic
+deference to the reviewer and not reflexive defense of yourself.
+
 ## Notes
 
 - One reviewer is usually enough; for a stronger check repeat 3–6 with a second
