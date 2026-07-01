@@ -74,7 +74,64 @@ if [ "$bundle_failed" -ne 0 ]; then
   warn "then re-run: brew bundle --file=\"$DOTFILES/Brewfile\""
 fi
 
-# 4. Dotfiles via GNU Stow (every top-level package dir; hidden dirs ignored)
+# 4. Tools installed via their own native installers (NOT Homebrew).
+# These vendors ship standalone installers that self-update. Their Homebrew
+# packages lag behind and/or disable the built-in updaters, so we install them
+# directly. PATH entries for all of these (~/.local/bin, ~/.cargo/bin,
+# ~/.bun/bin) are already set in zsh/.zshrc. Each is guarded so it only runs on
+# first install; re-running bootstrap leaves existing installs to self-update.
+
+# Claude Code — tracks the "latest" release channel. Installs to ~/.local/bin.
+if [ ! -x "$HOME/.local/bin/claude" ]; then
+  log "Installing Claude Code (native installer, latest channel)..."
+  curl -fsSL https://claude.ai/install.sh | bash -s latest \
+    || warn "Claude Code install failed — run manually: curl -fsSL https://claude.ai/install.sh | bash -s latest"
+else
+  log "Claude Code already installed (self-updates) — skipping."
+fi
+
+# Codex CLI — OpenAI's standalone installer. Installs to ~/.local/bin.
+if [ ! -x "$HOME/.local/bin/codex" ]; then
+  log "Installing Codex CLI (native installer)..."
+  CODEX_NON_INTERACTIVE=1 sh -c \
+    "$(curl -fsSL https://chatgpt.com/codex/install.sh)" \
+    || warn "Codex install failed — run manually: curl -fsSL https://chatgpt.com/codex/install.sh | sh"
+else
+  log "Codex CLI already installed (self-updates) — skipping."
+fi
+
+# Rust via rustup — the canonical toolchain manager (toolchains, targets,
+# nightly, components), which the Homebrew 'rust' formula does not provide.
+# --no-modify-path: ~/.cargo/bin is already on PATH via zsh/.zshrc.
+if [ ! -x "$HOME/.cargo/bin/rustup" ]; then
+  log "Installing Rust via rustup..."
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --no-modify-path \
+    || warn "rustup install failed — run manually: https://rustup.rs"
+else
+  log "rustup already installed (run 'rustup update') — skipping."
+fi
+
+# Bun — upstream installer + 'bun upgrade' self-update. Installs to ~/.bun.
+if [ ! -x "$HOME/.bun/bin/bun" ]; then
+  log "Installing Bun (native installer)..."
+  curl -fsSL https://bun.sh/install | bash \
+    || warn "Bun install failed — run manually: curl -fsSL https://bun.sh/install | bash"
+else
+  log "Bun already installed (run 'bun upgrade') — skipping."
+fi
+
+# uv — Astral's installer + 'uv self update'. Installs to ~/.local/bin.
+# INSTALLER_NO_MODIFY_PATH: ~/.local/bin is already on PATH via zsh/.zshrc.
+if [ ! -x "$HOME/.local/bin/uv" ]; then
+  log "Installing uv (native installer)..."
+  curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 sh \
+    || warn "uv install failed — run manually: curl -LsSf https://astral.sh/uv/install.sh | sh"
+else
+  log "uv already installed (run 'uv self update') — skipping."
+fi
+
+# 5. Dotfiles via GNU Stow (every top-level package dir; hidden dirs ignored)
 # stow is installed by brew above; bail out gracefully if the bundle couldn't.
 if ! command -v stow >/dev/null 2>&1; then
   warn "stow is not installed — skipping dotfile linking."
@@ -95,7 +152,7 @@ for pkg in */; do
   stow --no-folding --restow --target="$HOME" "$pkg" || warn "  stow $pkg failed — skipping."
 done
 
-# 5. Skills — shared Claude/Codex Agent-Skills package.
+# 6. Skills — shared Claude/Codex Agent-Skills package.
 # Unlike the packages above (which target $HOME), skills link into each tool's
 # own skills dir. Pre-create the targets as real dirs so stow links each skill
 # individually instead of folding the whole dir — folding would shadow Codex's

@@ -31,9 +31,6 @@ bold_is_bright = true
 family = 'JetBrainsMono Nerd Font'
 size = 17
 
-[hosts]
-show_teleport = false
-
 [shell]
 args = []
 default_cwd = '~'
