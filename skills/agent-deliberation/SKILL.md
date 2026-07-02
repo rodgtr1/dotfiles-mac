@@ -34,9 +34,10 @@ This skill reuses the proven mechanics of `second-opinion`. The non-obvious part
   save it yourself with the Write tool. Zero permission dependency on the workers.
 - **Wait on agent-status, NOT on the output marker.** The worker echoes your entire
   prompt (markers included) the instant it starts, so an output-wait on the marker
-  returns immediately on that echo, before any real work exists. Wait for the pane's
-  agent status to go `working` then `done` (the same Stop signal the Agent Panel
-  shows). The marker is for *extraction only*.
+  returns immediately on that echo, before any real work exists. Track the pane's
+  agent status (`working` → `done`, the same Stop signal the Agent Panel shows) —
+  for concurrent workers, via the event-driven supervision loop in the per-stage
+  mechanic. The marker is for *extraction only*.
 - **No model guessing.** Use each CLI's own default model. Passing a model id is the
   #1 cause of "model not supported for this account". Only pass one if the user
   names it.
@@ -110,14 +111,36 @@ For every worker run, do exactly this:
 2. **Launch** the CLI, passing the file via `cat`:
    - Claude pane: `sidekick-ctl pane run "$PANE_CLAUDE" 'claude -p "$(cat '$D'/PROMPT.md)"'`
    - Codex pane:  `sidekick-ctl pane run "$PANE_CODEX"  'codex exec "$(cat '$D'/PROMPT.md)"'`
-3. **Wait for it to actually finish** (two phases so a stale status can't fool you):
+3. **Confirm it actually started**, right after each launch:
    ```sh
    sidekick-ctl wait agent-status "$PANE" working --timeout 60000   # it STARTED
-   sidekick-ctl wait agent-status "$PANE" done    --timeout 600000  # it FINISHED
    ```
-   `wait` exits non-zero on timeout. If phase 1 times out the launch failed — read
+   `wait` exits non-zero on timeout. If this times out the launch failed — read
    the pane and report rather than assuming output.
-4. **Extract and save** the marked block yourself:
+4. **Supervise until finished.** When a stage runs both panes concurrently, don't
+   block on one pane's `done` while blind to the other (a worker stuck on a
+   permission prompt goes `ready` and would sit unnoticed). Loop: reconcile
+   authoritative state from `pane list`, then sleep on the event stream until
+   something changes:
+   ```sh
+   DEADLINE=$(( $(date +%s) + 600 ))
+   while :; do
+     STATES=$(sidekick-ctl pane list)   # authoritative; parse agent_status per worker pane
+     # → every worker pane done?           break and extract
+     # → any worker pane ready?            it is stuck waiting for input — read that
+     #                                     pane, answer/allow if it's a prompt you can
+     #                                     safely satisfy, else report to the user
+     # → past $DEADLINE?                   read both panes and report the stall
+     sidekick-ctl wait event --type agent_state --timeout 30000 >/dev/null || true
+   done
+   ```
+   `wait event` (blocks until the *next* agent-state change anywhere) is just the
+   efficient wakeup; `pane list` is the truth, so nothing is lost if an event fires
+   between iterations. On an older sidekick-ctl without `wait event`, substitute
+   `sleep 5` — the loop still works, only the wakeup is cruder. For a
+   single-pane stage (the Stage-4 judge), plain
+   `sidekick-ctl wait agent-status "$PANE" done --timeout 600000` is fine.
+5. **Extract and save** the marked block yourself:
    ```sh
    sidekick-ctl pane read "$PANE" --source recent --lines 800 \
      | awk '/<<<<<DELIB/{c=""; f=1; next} /DELIB>>>>>/{f=0} f{c=c$0"\n"} END{printf "%s", c}' \
@@ -136,8 +159,9 @@ The marker the workers must print around their answer, every stage:
 DELIB>>>>>
 ```
 
-Stages 1's two runs are independent → launch both, then wait on both (they run
-concurrently in their two panes). Same for stage 2 and stage 3.
+Stages 1's two runs are independent → launch both, confirm both started, then
+supervise both with the single event-driven loop above (they run concurrently in
+their two panes). Same for stage 2 and stage 3.
 
 ## Stage 1 — Independent conclusions
 
