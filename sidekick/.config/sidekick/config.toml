@@ -2,6 +2,7 @@
 always_ask = []
 auto_allow = []
 mode = 'auto'
+worktree_auto_approve = true
 
 [behavior]
 allow_hyperlinks = true
@@ -30,6 +31,15 @@ word_wrap = true
 bold_is_bright = true
 family = 'JetBrainsMono Nerd Font'
 size = 17
+
+[notifications]
+background_grace_seconds = 0
+command_failed = true
+enabled = true
+finished = false
+long_running_command = true
+long_running_threshold_seconds = 30
+needs_input = false
 
 [shell]
 args = []

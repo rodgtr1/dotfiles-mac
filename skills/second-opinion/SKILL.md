@@ -12,26 +12,31 @@ in hand.
 
 The reviewer is a separate CLI process (a different model or vendor), not an
 internal subagent. That separation is the point — an independent take, not the
-same model agreeing with itself.
+same model agreeing with itself. The user picks the reviewer by naming it:
+`second-opinion codex`, `second-opinion claude opus`, `second-opinion claude
+fable`, `second-opinion ollama llama3` — provider first, model optional.
 
 ## Design (read this — it's why the steps are short)
 
-Sidekick panes are readable. `sidekick-ctl pane read <id> --source recent` returns
-**clean, ANSI-stripped text** from a 64 KB rolling buffer. So:
+`pane split --exec <cmd...>` launches the reviewer as the new pane's **root
+process**: argv is passed positionally through a fixed `exec "$@"`, never
+re-parsed by a shell, and when the process exits Sidekick drives the pane's agent
+status to `done`. That collapses the whole launch/wait dance:
 
-- **No output file.** The reviewer runs in the pane (the user watches it live). You
-  wait for the pane's *agent status* to go `working` then `done` (the same Stop
-  signal the Agent Panel shows) — **NOT** for the verdict marker. The reviewer
-  echoes your whole prompt (markers included) the instant it starts, so an
-  output-wait on the marker returns immediately on that echo, long before any real
-  verdict exists. Once the pane is `done`, `pane read` and slice the marked block.
-  The marker is for *extraction only*, never for detecting completion.
+- **One launch call, one wait.** The pane is brand new (starts `idle`, can't hold
+  a stale `done`), and process exit forces `done` for *any* CLI — hooks or not.
+  So a single `wait agent-status done` is the completion signal. Never wait on
+  the verdict marker for completion: the reviewer echoes your whole prompt
+  (markers included) in its transcript the instant it starts, so an output-wait
+  on the marker fires on that echo long before any real verdict exists. The
+  marker is for *extraction only*.
 - **No model guessing.** Use the reviewer CLI's own default model. Passing a model
   id is the #1 cause of failure ("model not supported for this account"). Only
   pass one if the user explicitly names it.
 - **One input file, written once, never read back by you.** A packet that contains
   a git diff has quotes/`$`/backticks that are fragile to pass inline — the file
-  is the clean way to hand it over. That's its only job.
+  is the clean way to hand it over. At launch, `"$(cat file)"` expands to a
+  single argv word (no re-parse), so the packet rides in cleanly.
 
 ## Preconditions
 
@@ -56,12 +61,19 @@ Record `pane_id` (`$ORIGIN_PANE`, also `$SIDEKICK_PANE_ID`) and `tab_id`
 
 Argument form: `<provider> [model]`.
 
-- `codex`  → `codex exec "<prompt>"`            (default model; add `-m <model>` only if named)
-- `claude` → `claude -p "<prompt>"`             (default model; add `--model <model>` only if named)
-- `ollama` → `ollama run <model> "<prompt>"`    (model required for ollama)
-- A bare model with no provider → assume `claude`.
+- `codex`  → `codex exec "<packet>"`            (default model; add `-m <model>` only if named)
+- `claude` → `claude -p "<packet>"`             (default model; add `--model <model>` only if named)
+- `ollama` → `ollama run <model> "<packet>"`    (model required for ollama)
+- A bare model with no provider → assume `claude` (so `opus`, `sonnet`,
+  `fable` alone mean `claude --model <that>`).
 - **No arguments** → ask ONLY which provider (claude/codex) with AskUserQuestion.
   Do NOT ask for a model — the default is correct and asking invites a bad id.
+
+When the user DOES name a model, pass it through as given — the claude CLI
+accepts family aliases (`opus`, `sonnet`, `haiku`, `fable`) as well as full ids
+like `claude-opus-4-8`. If the CLI rejects it (exits instantly with a model
+error in the pane), report the error and offer the provider's default instead
+of guessing a different id.
 
 ⚠️ Flag trap: `-p` is `--print` in **claude** but `--profile` in **codex**. Codex's
 non-interactive mode is the `exec` subcommand. Prefer a *different vendor* than the
@@ -112,43 +124,39 @@ tool** (clean — no shell escaping). Include, in this order:
    > points that most drove your verdict.
    > `SECOND_OPINION>>>>>`
 
-## 4. Launch in a same-tab pane (output stays in the pane — no redirect)
+## 4. Launch: split with the reviewer as the pane's process
+
+One call — the reviewer starts immediately as the new pane's root process
+(example: codex with default model):
 
 ```sh
-sidekick-ctl pane split "$ORIGIN_PANE" --direction right --cwd "$PWD" --no-focus
+sidekick-ctl pane split "$ORIGIN_PANE" --direction right --cwd "$PWD" --no-focus \
+  --exec codex exec "$(cat /tmp/so-$RID.md)"
 ```
 
-Read `result.pane.pane_id` (`$REVIEWER_PANE`) — do not guess it. Then run the
-reviewer (example: codex with default model):
+claude variant: `--exec claude -p "$(cat /tmp/so-$RID.md)"`; ollama:
+`--exec ollama run <model> "$(cat /tmp/so-$RID.md)"`. Add `-m`/`--model` ONLY if
+the user named a model. Read `result.pane.pane_id` (`$REVIEWER_PANE`) from the
+split response — do not guess it. The user sees the reviewer think live in the
+pane.
+
+> **Big packets:** each `--exec` argv item is capped at 32 KB. If the split is
+> rejected for a huge diff, launch as
+> `--exec sh -c 'exec codex exec "$(cat /tmp/so-<RID>.md)"'` instead (the file is
+> read inside the pane; fine for a read-and-answer reviewer).
+
+## 5. Wait for `done`, then read the verdict
+
+Process exit drives the pane to `done` (and for claude/codex the Stop hook does
+too — same signal the Agent Panel shows), so one wait covers every provider:
 
 ```sh
-sidekick-ctl pane run "$REVIEWER_PANE" 'codex exec "$(cat /tmp/so-'$RID'.md)"'
-```
-
-claude variant: `'claude -p "$(cat /tmp/so-'$RID'.md)"'`. Add `-m`/`--model` ONLY
-if the user named a model. The user sees the reviewer think live in the pane.
-
-## 5. Wait for the reviewer to FINISH, then read its verdict
-
-Do **not** wait on the verdict marker. The reviewer echoes your entire prompt
-(markers and all) the moment it starts, so `wait output "…SECOND_OPINION>>>>>"`
-returns within a second on that echo — before any reasoning has happened. You then
-slice the prompt's literal template text instead of a verdict. Wait on the pane's
-**agent status** instead, in two phases so a stale status can't fool you:
-
-```sh
-# 1) Confirm the reviewer actually STARTED. Guards against the pane's pre-launch
-#    'idle' and against a leftover 'done' from a previous review in a reused pane.
-sidekick-ctl wait agent-status "$REVIEWER_PANE" working --timeout 60000
-
-# 2) Now block until it FINISHES — the real Stop signal (same 'done' the Agent
-#    Panel shows). Generous timeout; real reviews take minutes:
 sidekick-ctl wait agent-status "$REVIEWER_PANE" done --timeout 600000
 ```
 
-`wait` exits non-zero on timeout. If phase 1 times out the launch likely failed —
-`pane read` and report what you see rather than assuming a verdict. Only after
-phase 2 returns `done` do you read and slice the block:
+`wait` exits non-zero on timeout; real reviews take minutes, hence the generous
+timeout. On timeout, `pane read` and report what you see rather than assuming a
+verdict. After `done`, read and slice the marked block:
 
 ```sh
 sidekick-ctl pane read "$REVIEWER_PANE" --source recent --lines 400 \
@@ -156,15 +164,15 @@ sidekick-ctl pane read "$REVIEWER_PANE" --source recent --lines 400 \
 ```
 
 Take the LAST marked block (the prompt echo holds the markers earlier; the awk
-resets on each opening marker so the final, real block wins). If the markers never
-appear (reviewer errored or derailed), read the last ~100 lines raw and report that.
+resets on each opening marker so the final, real block wins). If `done` arrived
+but the markers are absent, two possibilities:
 
-> **Fallback — non-agent CLIs (plain `ollama run`):** these don't drive agent
-> status, so the two-phase wait will just time out. For them only, block on the
-> marker instead — `sidekick-ctl wait output "$REVIEWER_PANE" "SECOND_OPINION>>>>>"
-> --timeout 600000` — then slice and take the LAST block. `codex exec` and
-> `claude -p` both drive agent status (via their Stop hook), so prefer the status
-> wait for those.
+- **Launch failed** (bad binary/flags exits instantly, which also lands on
+  `done`) — the pane tail will show the error; report it.
+- **Premature `done`** (a non-hook CLI that went quiet mid-generation) — run
+  `sidekick-ctl wait output "$REVIEWER_PANE" "SECOND_OPINION>>>>>" --timeout
+  600000` once as a safety net, then re-read and slice. If the markers still
+  never appear, read the last ~100 lines raw and report that.
 
 ## 6. Clean up and report
 
@@ -202,6 +210,10 @@ deference to the reviewer and not reflexive defense of yourself.
 - One reviewer is usually enough; for a stronger check repeat 3–6 with a second
   provider (mind the 4-pane limit).
 - Leaving the reviewer pane open is fine if the user wants to scroll the live
-  reasoning — just say so instead of closing it.
+  reasoning — just say so instead of closing it. An `--exec` pane's process has
+  already exited, so the pane is inert either way.
+- Workers launched via `--exec` with `claude`/`codex` as the program inherit
+  Sidekick's scoped permission flags automatically; don't add your own
+  permission-mode flags.
 - Never close panes you didn't create, or send input to a pane whose id/purpose
   you haven't verified via `pane list` or the split response.
