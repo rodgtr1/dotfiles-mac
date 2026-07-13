@@ -7,6 +7,7 @@ worktree_auto_approve = true
 [behavior]
 allow_hyperlinks = true
 audible_bell = false
+confirm_close = true
 mouse_autohide = true
 restore_session = false
 scroll_on_keystroke = true
