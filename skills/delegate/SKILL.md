@@ -110,8 +110,11 @@ concurrently editing yourself, add `--worktree <branch>` instead of `--cwd`
 (shared panes do not isolate filesystem changes) — but the default is same-cwd,
 since the supervisor should be reading, not writing, during delegation.
 
-> Each `--exec` argv item is capped at 32 KB. For a huge packet, launch as
-> `--exec sh -c 'exec claude --model opus -- "$(cat /tmp/delegate-<RID>.md)"'`.
+> Each `--exec` argv item is capped at 32 KB. If the packet is bigger, do NOT
+> wrap the launch in `sh -c` — a wrapper hides the program from Sidekick's
+> approval-flag injection, so the worker can silently lose auto-approve. Keep
+> `claude` as the program and point at the file instead:
+> `--exec claude --model opus -- "Read /tmp/delegate-<RID>.md and do exactly what it says."`
 
 ## 4. Wait, and handle the human-input case
 

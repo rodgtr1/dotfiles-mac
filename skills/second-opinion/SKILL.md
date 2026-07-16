@@ -146,9 +146,11 @@ split response — do not guess it. The user sees the reviewer think live in the
 pane.
 
 > **Big packets:** each `--exec` argv item is capped at 32 KB. If the split is
-> rejected for a huge diff, launch as
-> `--exec sh -c 'exec codex exec "$(cat /tmp/so-<RID>.md)"'` instead (the file is
-> read inside the pane; fine for a read-and-answer reviewer).
+> rejected for a huge diff, do NOT wrap the launch in `sh -c` — a wrapper hides
+> the program from Sidekick's approval-flag injection. Keep the reviewer CLI as
+> the program and point at the file instead:
+> `--exec codex exec "Read /tmp/so-<RID>.md and follow its instructions exactly."`
+> (claude variant: `--exec claude -- "Read /tmp/so-<RID>.md and follow its instructions exactly."`)
 
 ## 5. Wait for `done`, then read the verdict
 
