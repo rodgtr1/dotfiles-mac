@@ -20,12 +20,13 @@ fable`, `second-opinion ollama llama3` — provider first, model optional.
 
 `pane split --exec <cmd...>` launches the reviewer as the new pane's **root
 process**: argv is passed positionally through a fixed `exec "$@"`, never
-re-parsed by a shell, and when the process exits Sidekick drives the pane's agent
-status to `done`. That collapses the whole launch/wait dance:
+re-parsed by a shell. Claude runs interactively so its TUI streams visibly and
+its Stop hook drives the pane's agent status to `done`; one-shot CLIs drive
+`done` when their process exits. That collapses the whole launch/wait dance:
 
 - **One launch call, one wait.** The pane is brand new (starts `idle`, can't hold
-  a stale `done`), and process exit forces `done` for *any* CLI — hooks or not.
-  So a single `wait agent-status done` is the completion signal. Never wait on
+  a stale `done`), and either Claude's Stop hook or one-shot process exit forces
+  `done`. So a single `wait agent-status done` is the completion signal. Never wait on
   the verdict marker for completion: the reviewer echoes your whole prompt
   (markers included) in its transcript the instant it starts, so an output-wait
   on the marker fires on that echo long before any real verdict exists. The
@@ -65,7 +66,7 @@ Record `pane_id` (`$ORIGIN_PANE`, also `$SIDEKICK_PANE_ID`) and `tab_id`
 Argument form: `<provider> [model]`.
 
 - `codex`  → `codex exec "<packet>"`            (default model; add `-m <model>` only if named)
-- `claude` → `claude -p "<packet>"`             (default model; add `--model <model>` only if named)
+- `claude` → `claude -- "<packet>"`              (interactive; add `--model <model>` only if named)
 - `ollama` → `ollama run <model> "<packet>"`    (model required for ollama)
 - A bare model with no provider → assume `claude` (so `opus`, `sonnet`,
   `fable` alone mean `claude --model <that>`).
@@ -137,7 +138,7 @@ sidekick-ctl pane split "$ORIGIN_PANE" --direction right --cwd "$PWD" --no-focus
   --exec codex exec "$(cat /tmp/so-$RID.md)"
 ```
 
-claude variant: `--exec claude -p "$(cat /tmp/so-$RID.md)"`; ollama:
+claude variant: `--exec claude -- "$(cat /tmp/so-$RID.md)"`; ollama:
 `--exec ollama run <model> "$(cat /tmp/so-$RID.md)"`. Add `-m`/`--model` ONLY if
 the user named a model. Read `result.pane.pane_id` (`$REVIEWER_PANE`) from the
 split response — do not guess it. The user sees the reviewer think live in the
@@ -150,8 +151,9 @@ pane.
 
 ## 5. Wait for `done`, then read the verdict
 
-Process exit drives the pane to `done` (and for claude/codex the Stop hook does
-too — same signal the Agent Panel shows), so one wait covers every provider:
+Claude's Stop hook drives the interactive pane to `done`; process exit does the
+same for one-shot reviewers (the same signal the Agent Panel shows), so one wait
+covers every provider:
 
 ```sh
 sidekick-ctl wait agent-status "$REVIEWER_PANE" done --timeout 600000
@@ -213,8 +215,8 @@ deference to the reviewer and not reflexive defense of yourself.
 - One reviewer is usually enough; for a stronger check repeat 3–6 with a second
   provider (mind the 4-pane limit).
 - Leaving the reviewer pane open is fine if the user wants to scroll the live
-  reasoning — just say so instead of closing it. An `--exec` pane's process has
-  already exited, so the pane is inert either way.
+  reasoning — just say so instead of closing it. A Claude reviewer remains an
+  interactive session; one-shot reviewer processes have already exited.
 - Workers launched via `--exec` with `claude`/`codex` as the program inherit
   Sidekick's scoped permission flags automatically; don't add your own
   permission-mode flags.
