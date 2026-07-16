@@ -1,6 +1,9 @@
 ---
 name: stage-and-commit
 description: Stages files in a git initialized repo, writes a git commit description, and commits. Use when the user asks to stage and commit the changes.
+sidekick-palette: true
+sidekick-palette-label: Stage and Commit
+sidekick-palette-submit: true
 ---
 
 1. Run `git status` and `git log --oneline -5` in parallel to see what's changed and match the repo's commit style. If there are any sensitive files that should be ignored or not committed, stop and flag them to the user.

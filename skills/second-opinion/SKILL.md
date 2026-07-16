@@ -1,6 +1,7 @@
 ---
 name: second-opinion
 description: Get an independent second opinion on a conclusion or finding from another agent (a different model or CLI) running in a Sidekick pane. Use when the user asks to "get a second opinion", "double-check this with another model", "have codex/opus review this", "sanity-check my conclusion", or when you want an honest adversarial cross-check of an answer before committing to it. Spawns the reviewer in the same tab, waits for its verdict, and reads it straight off the pane.
+sidekick-palette: true
 ---
 
 # Second Opinion

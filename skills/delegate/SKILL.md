@@ -1,6 +1,8 @@
 ---
 name: delegate
 description: Delegate an implementation task to a worker agent in a visible Sidekick pane, supervise it, then independently review the result and iterate with feedback until it passes. The default worker matches the supervisor's family (Fable delegates to Opus; Codex sol delegates to terra), or name one explicitly ("delegate claude fable", "delegate codex terra"). Use when the user says "delegate this", "have opus do this", "send this to a worker", "spin up a worker for this", or wants the calling agent to hand off build work and act as the reviewer. The worker is a separate interactive CLI process driven via sidekick-ctl; the caller stays as supervisor.
+sidekick-palette: true
+sidekick-palette-label: Delegate to Worker
 ---
 
 # Delegate

@@ -1,7 +1,7 @@
 [approval]
 always_ask = [ '.env' ]
 auto_allow = []
-mode = 'claude-auto'
+mode = 'review'
 worktree_auto_approve = true
 
 [arcade]
