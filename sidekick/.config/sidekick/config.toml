@@ -1,8 +1,11 @@
 [approval]
-always_ask = []
+always_ask = [ '.env' ]
 auto_allow = []
-mode = 'auto'
+mode = 'claude-auto'
 worktree_auto_approve = true
+
+[arcade]
+enabled = true
 
 [behavior]
 allow_hyperlinks = true

@@ -40,13 +40,16 @@ status to `done`. That collapses the whole launch/wait dance:
 
 ## Preconditions
 
-Must run inside an automation-enabled Sidekick pane:
+Must run inside an automation-enabled Sidekick pane. Three checks, in order —
+report the one that failed and stop (do not attempt the workflow degraded):
 
 ```sh
-test "$SIDEKICK_ENV" = 1 && command -v sidekick-ctl
+test "$SIDEKICK_ENV" = 1   # not set → this terminal is not a Sidekick pane
+command -v sidekick-ctl    # missing → Sidekick's CLI is not installed/on PATH
+sidekick-ctl ping          # fails → Sidekick pane, but the control socket is
+                           # unreachable (typical inside a codex sandbox —
+                           # retry with escalated permissions before giving up)
 ```
-
-If that fails, tell the user this skill needs to run inside Sidekick and stop.
 
 Find the origin pane + tab:
 
