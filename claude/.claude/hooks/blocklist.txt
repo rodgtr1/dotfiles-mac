@@ -1,0 +1,72 @@
+# dcg-guard blocklist — one pattern per line.
+#
+# Each non-comment line is an EXTENDED REGEX (grep -E), matched
+# case-insensitively against the full shell command the agent wants to run.
+# If ANY line matches, the command is BLOCKED.
+#
+#   * Lines starting with #  -> comments
+#   * Blank lines            -> ignored
+#   * First match wins       -> its pattern is shown in the block message
+#
+# Add a rule = add a line, then commit. Loosen a rule = edit or comment it out.
+# Test after editing:
+#   echo 'the command here' | ~/.claude/hooks/blocklist.txt >/dev/null; \
+#   echo 'the command here' | ~/.claude/hooks/dcg-guard.sh --test
+#
+# NOTE: matching is on the raw string. This catches common mistakes, not a
+# determined bypass (heredocs, base64, variable indirection). Seatbelt, not vault.
+
+# ---------------------------------------------------------------------------
+# Filesystem — recursive/forced deletion
+# ---------------------------------------------------------------------------
+# rm with both recursive and force flags, in any order: -rf, -fr, -Rf, -r -f ...
+\brm\b.*(-[[:alpha:]]*r[[:alpha:]]*f|-[[:alpha:]]*f[[:alpha:]]*r)
+\brm\b.*(-[[:alpha:]]*r[[:alpha:]]*\b.*-[[:alpha:]]*f|\-[[:alpha:]]*f[[:alpha:]]*\b.*-[[:alpha:]]*r)
+\brm\b.*--recursive
+\brm\b.*--force
+# rm targeting obviously catastrophic roots
+\brm\b.*[[:space:]]/($|[[:space:]])
+\brm\b.*[[:space:]](~|\$HOME)/?($|[[:space:]])
+
+# ---------------------------------------------------------------------------
+# Disk / filesystem destruction
+# ---------------------------------------------------------------------------
+\bdd\b.*of=/dev/(disk|rdisk|sd|nvme)
+\bmkfs(\.[[:alnum:]]+)?\b
+\bdiskutil\b.*(eraseDisk|eraseVolume|reformat|zeroDisk)
+\bnewfs_[[:alnum:]]+\b
+>[[:space:]]*/dev/(disk|rdisk|sd|nvme)
+
+# ---------------------------------------------------------------------------
+# Permissions — recursive chmod/chown on system roots
+# ---------------------------------------------------------------------------
+\bchmod\b.*-[[:alpha:]]*R.*[[:space:]]/($|[[:space:]])
+\bchown\b.*-[[:alpha:]]*R.*[[:space:]]/($|[[:space:]])
+
+# ---------------------------------------------------------------------------
+# Git — irreversible history / worktree destruction
+# ---------------------------------------------------------------------------
+\bgit\b.*reset[[:space:]]+--hard
+# Blocks all force pushes, including --force-with-lease. Loosen if you want
+# lease pushes allowed (they are the safer variant).
+\bgit\b.*push.*(--force|-f\b)
+\bgit\b.*clean[[:space:]].*-[[:alpha:]]*f[[:alpha:]]*d|\bgit\b.*clean[[:space:]].*-[[:alpha:]]*d[[:alpha:]]*f
+\bgit\b.*branch[[:space:]]+-D[[:space:]]+(main|master)\b
+\bgit\b.*checkout[[:space:]]+--[[:space:]]*\.[[:space:]]*$
+
+# ---------------------------------------------------------------------------
+# Pipe-to-shell — running remote code unreviewed
+# ---------------------------------------------------------------------------
+\b(curl|wget)\b.*\|[[:space:]]*(sudo[[:space:]]+)?(bash|sh|zsh)\b
+
+# ---------------------------------------------------------------------------
+# Fork bomb
+# ---------------------------------------------------------------------------
+:\(\)[[:space:]]*\{[[:space:]]*:\|:
+
+# ---------------------------------------------------------------------------
+# System control (uncomment if you never want an agent doing these)
+# ---------------------------------------------------------------------------
+# \bsudo[[:space:]]+rm\b
+# \b(shutdown|reboot|halt)\b
+# \bkillall\b

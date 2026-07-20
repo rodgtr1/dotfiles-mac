@@ -14,3 +14,8 @@ nvim/.config/nvim/.netrwhist
 # Never commit secrets — keep these out even if a package ever includes them
 **/sops/age/keys.txt
 **/gh/hosts.yml
+
+# The global gitignore (~/.config/git/ignore) excludes **/.claude/settings.local.json
+# because those are usually machine-local. Ours only registers the dcg-guard
+# hook (no secrets) and is meant to sync across machines — re-include just it.
+!claude/.claude/settings.local.json

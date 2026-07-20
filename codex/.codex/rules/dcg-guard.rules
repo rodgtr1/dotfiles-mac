@@ -1,0 +1,116 @@
+# dcg-guard.rules — Destructive Command Guard for Codex (execpolicy).
+#
+# Codex auto-loads every *.rules file under ~/.codex/rules/ at startup, so this
+# file sits ALONGSIDE your existing default.rules (which is left untouched).
+#
+# Each prefix_rule matches a command by its leading TOKENS (not regex). Codex
+# splits linear command chains (a && b, a | b) and evaluates each segment, and
+# when several rules match the most restrictive wins (forbidden > prompt > allow).
+#
+#   decision="forbidden"  -> command is blocked outright
+#   decision="prompt"     -> Codex asks you to confirm before running
+#
+# This mirrors ~/dotfiles-mac/claude/.claude/hooks/blocklist.txt. If you add a
+# rule here, add the matching regex there too (and vice-versa) so both agents
+# stay in sync.
+#
+# Test after editing (exit shows the decision):
+#   codex execpolicy check --pretty --rules ~/.codex/rules/dcg-guard.rules -- rm -rf /
+#
+# LIMITATION: prefix matching cannot express "flag anywhere" or "value like
+# /dev/*". A few things the Claude regex catches are only partially covered here
+# (noted inline). Codex's sandbox + approval policy remain the backstop for those.
+
+# ---------------------------------------------------------------------------
+# rm — recursive / forced deletion (enumerated because flag ORDER matters)
+# ---------------------------------------------------------------------------
+prefix_rule(pattern=["rm", "-rf"],  decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "-fr"],  decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "-Rf"],  decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "-fR"],  decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "-rF"],  decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "-rfv"], decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "-rvf"], decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "-vrf"], decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+# recursive-first (catches "-r", "-r -f", "-r <anything>")
+prefix_rule(pattern=["rm", "-r"],   decision="forbidden", justification="Recursive delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "-R"],   decision="forbidden", justification="Recursive delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "--recursive"], decision="forbidden", justification="Recursive delete blocked by dcg-guard.")
+# force-first, then recursive (rm -f -r ...)
+prefix_rule(pattern=["rm", "-f", "-r"], decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "-f", "-R"], decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["rm", "-f", "--recursive"], decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+# sudo rm ... (sudo shifts every token, so re-enumerate the common ones)
+prefix_rule(pattern=["sudo", "rm", "-rf"], decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["sudo", "rm", "-fr"], decision="forbidden", justification="Recursive force-delete blocked by dcg-guard.")
+prefix_rule(pattern=["sudo", "rm", "-r"],  decision="forbidden", justification="Recursive delete blocked by dcg-guard.")
+prefix_rule(pattern=["sudo", "rm", "-R"],  decision="forbidden", justification="Recursive delete blocked by dcg-guard.")
+prefix_rule(pattern=["sudo", "rm", "--recursive"], decision="forbidden", justification="Recursive delete blocked by dcg-guard.")
+
+# ---------------------------------------------------------------------------
+# Disk / filesystem destruction
+# ---------------------------------------------------------------------------
+# dd: prefix rules cannot see "of=/dev/*", so ALL dd is set to prompt (raw dd is
+# rarely something an agent should run unattended). A legit dd to a file just
+# needs one confirmation.
+prefix_rule(pattern=["dd"], decision="prompt", justification="Raw dd requires confirmation (dcg-guard).")
+# mkfs family (Linux) + newfs_* (macOS) — formatting a filesystem
+prefix_rule(pattern=["mkfs"],       decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+prefix_rule(pattern=["mkfs.ext2"],  decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+prefix_rule(pattern=["mkfs.ext3"],  decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+prefix_rule(pattern=["mkfs.ext4"],  decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+prefix_rule(pattern=["mkfs.xfs"],   decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+prefix_rule(pattern=["mkfs.btrfs"], decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+prefix_rule(pattern=["mkfs.vfat"],  decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+prefix_rule(pattern=["mkfs.exfat"], decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+prefix_rule(pattern=["newfs_hfs"],   decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+prefix_rule(pattern=["newfs_apfs"],  decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+prefix_rule(pattern=["newfs_msdos"], decision="forbidden", justification="Filesystem format blocked by dcg-guard.")
+# diskutil destructive verbs
+prefix_rule(pattern=["diskutil", "eraseDisk"],     decision="forbidden", justification="Disk erase blocked by dcg-guard.")
+prefix_rule(pattern=["diskutil", "eraseVolume"],   decision="forbidden", justification="Disk erase blocked by dcg-guard.")
+prefix_rule(pattern=["diskutil", "reformat"],      decision="forbidden", justification="Disk reformat blocked by dcg-guard.")
+prefix_rule(pattern=["diskutil", "zeroDisk"],      decision="forbidden", justification="Disk wipe blocked by dcg-guard.")
+prefix_rule(pattern=["diskutil", "secureErase"],   decision="forbidden", justification="Disk erase blocked by dcg-guard.")
+prefix_rule(pattern=["diskutil", "partitionDisk"], decision="forbidden", justification="Disk repartition blocked by dcg-guard.")
+
+# ---------------------------------------------------------------------------
+# Git — irreversible history / worktree destruction
+# ---------------------------------------------------------------------------
+prefix_rule(pattern=["git", "reset", "--hard"], decision="forbidden", justification="git reset --hard blocked by dcg-guard.")
+# force push (NOTE: only matches when the flag directly follows 'push'; a
+# trailing "git push origin --force" is not caught by prefix matching)
+prefix_rule(pattern=["git", "push", "--force"], decision="forbidden", justification="Force push blocked by dcg-guard.")
+prefix_rule(pattern=["git", "push", "-f"],      decision="forbidden", justification="Force push blocked by dcg-guard.")
+prefix_rule(pattern=["git", "push", "--force-with-lease"], decision="forbidden", justification="Force push blocked by dcg-guard.")
+# git clean (deletes untracked files)
+prefix_rule(pattern=["git", "clean", "-f"],    decision="forbidden", justification="git clean blocked by dcg-guard.")
+prefix_rule(pattern=["git", "clean", "-fd"],   decision="forbidden", justification="git clean blocked by dcg-guard.")
+prefix_rule(pattern=["git", "clean", "-df"],   decision="forbidden", justification="git clean blocked by dcg-guard.")
+prefix_rule(pattern=["git", "clean", "-fdx"],  decision="forbidden", justification="git clean blocked by dcg-guard.")
+prefix_rule(pattern=["git", "clean", "-xfd"],  decision="forbidden", justification="git clean blocked by dcg-guard.")
+prefix_rule(pattern=["git", "clean", "-fdX"],  decision="forbidden", justification="git clean blocked by dcg-guard.")
+prefix_rule(pattern=["git", "clean", "--force"], decision="forbidden", justification="git clean blocked by dcg-guard.")
+# force-deleting the trunk branch
+prefix_rule(pattern=["git", "branch", "-D", "main"],   decision="forbidden", justification="Deleting main blocked by dcg-guard.")
+prefix_rule(pattern=["git", "branch", "-D", "master"], decision="forbidden", justification="Deleting master blocked by dcg-guard.")
+# discard ALL working-tree changes
+prefix_rule(pattern=["git", "checkout", "--", "."], decision="forbidden", justification="Discarding all changes blocked by dcg-guard.")
+prefix_rule(pattern=["git", "restore", "."],        decision="prompt",    justification="Discarding all changes — confirm (dcg-guard).")
+
+# ---------------------------------------------------------------------------
+# System power control — an agent should never do these unattended
+# ---------------------------------------------------------------------------
+prefix_rule(pattern=["shutdown"], decision="forbidden", justification="System shutdown blocked by dcg-guard.")
+prefix_rule(pattern=["reboot"],   decision="forbidden", justification="System reboot blocked by dcg-guard.")
+prefix_rule(pattern=["halt"],     decision="forbidden", justification="System halt blocked by dcg-guard.")
+prefix_rule(pattern=["poweroff"], decision="forbidden", justification="System poweroff blocked by dcg-guard.")
+
+# ---------------------------------------------------------------------------
+# KNOWN GAPS vs the Claude regex blocklist (prefix matching can't express them;
+# Codex sandbox + approval policy is the backstop):
+#   * chmod/chown -R on "/"      (mode arg sits between the flag and the path)
+#   * curl|bash / wget|sh        (can't target the pipe-into-shell shape)
+#   * fork bomb :(){ :|:& };:    (shell syntax, not a token prefix)
+#   * "git push origin --force"  (flag not directly after 'push')
+# ---------------------------------------------------------------------------
