@@ -12,6 +12,12 @@ success_symbol = "[❯](bold cyan)"
 [nodejs]
 disabled = true
 
+[golang]
+disabled = true
+
+[buf]
+disabled = true
+
 [aws]
 disabled = true
 
