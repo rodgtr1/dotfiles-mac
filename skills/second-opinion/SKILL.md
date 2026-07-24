@@ -1,13 +1,13 @@
 ---
 name: second-opinion
-description: Get an independent second opinion on a conclusion or finding from another agent (a different model or CLI) running in a Sidekick pane. Use when the user asks to "get a second opinion", "double-check this with another model", "have codex/opus review this", "sanity-check my conclusion", or when you want an honest adversarial cross-check of an answer before committing to it. Spawns the reviewer in the same tab, waits for its verdict, and reads it straight off the pane.
-sidekick-palette: true
+description: Get an independent second opinion on a conclusion or finding from another agent (a different model or CLI) running in a Cortland pane. Use when the user asks to "get a second opinion", "double-check this with another model", "have codex/opus review this", "sanity-check my conclusion", or when you want an honest adversarial cross-check of an answer before committing to it. Spawns the reviewer in the same tab, waits for its verdict, and reads it straight off the pane.
+cortland-palette: true
 ---
 
 # Second Opinion
 
 Hand the current conclusion + the evidence (especially the code you changed or are
-about to change) to a *different* agent running in a visible Sidekick pane, let it
+about to change) to a *different* agent running in a visible Cortland pane, let it
 independently scrutinize the work, then read its verdict back and continue with it
 in hand.
 
@@ -42,13 +42,13 @@ its Stop hook drives the pane's agent status to `done`; one-shot CLIs drive
 
 ## Preconditions
 
-Must run inside an automation-enabled Sidekick pane. Three checks, in order —
+Must run inside an automation-enabled Cortland pane. Three checks, in order —
 report the one that failed and stop (do not attempt the workflow degraded):
 
 ```sh
-test "$SIDEKICK_ENV" = 1   # not set → this terminal is not a Sidekick pane
-command -v sidekick-ctl    # missing → Sidekick's CLI is not installed/on PATH
-sidekick-ctl ping          # fails → Sidekick pane, but the control socket is
+test "$CORTLAND_ENV" = 1   # not set → this terminal is not a Cortland pane
+command -v cortland-ctl    # missing → Cortland's CLI is not installed/on PATH
+cortland-ctl ping          # fails → Cortland pane, but the control socket is
                            # unreachable (typical inside a codex sandbox —
                            # retry with escalated permissions before giving up)
 ```
@@ -56,10 +56,10 @@ sidekick-ctl ping          # fails → Sidekick pane, but the control socket is
 Find the origin pane + tab:
 
 ```sh
-sidekick-ctl pane current
+cortland-ctl pane current
 ```
 
-Record `pane_id` (`$ORIGIN_PANE`, also `$SIDEKICK_PANE_ID`) and `tab_id`
+Record `pane_id` (`$ORIGIN_PANE`, also `$CORTLAND_PANE_ID`) and `tab_id`
 (`$ORIGIN_TAB`).
 
 ## 1. Pick the reviewer
@@ -89,7 +89,7 @@ one you are (codex when you're claude) for genuine diversity.
 A tab holds at most **4 panes** and `pane split` does not spill to a new tab.
 
 ```sh
-sidekick-ctl pane list
+cortland-ctl pane list
 ```
 
 Count panes whose `tab_id == $ORIGIN_TAB`. If already 4, do NOT split — tell the
@@ -135,7 +135,7 @@ One call — the reviewer starts immediately as the new pane's root process
 (example: codex with default model):
 
 ```sh
-sidekick-ctl pane split "$ORIGIN_PANE" --direction right --cwd "$PWD" --no-focus \
+cortland-ctl pane split "$ORIGIN_PANE" --direction right --cwd "$PWD" --no-focus \
   --exec codex exec "$(cat /tmp/so-$RID.md)"
 ```
 
@@ -147,7 +147,7 @@ pane.
 
 > **Big packets:** each `--exec` argv item is capped at 32 KB. If the split is
 > rejected for a huge diff, do NOT wrap the launch in `sh -c` — a wrapper hides
-> the program from Sidekick's approval-flag injection. Keep the reviewer CLI as
+> the program from Cortland's approval-flag injection. Keep the reviewer CLI as
 > the program and point at the file instead:
 > `--exec codex exec "Read /tmp/so-<RID>.md and follow its instructions exactly."`
 > (claude variant: `--exec claude -- "Read /tmp/so-<RID>.md and follow its instructions exactly."`)
@@ -159,7 +159,7 @@ same for one-shot reviewers (the same signal the Agent Panel shows), so one wait
 covers every provider:
 
 ```sh
-sidekick-ctl wait agent-status "$REVIEWER_PANE" done --timeout 600000
+cortland-ctl wait agent-status "$REVIEWER_PANE" done --timeout 600000
 ```
 
 `wait` exits non-zero on timeout; real reviews take minutes, hence the generous
@@ -167,7 +167,7 @@ timeout. On timeout, `pane read` and report what you see rather than assuming a
 verdict. After `done`, read and slice the marked block:
 
 ```sh
-sidekick-ctl pane read "$REVIEWER_PANE" --source recent --lines 400 \
+cortland-ctl pane read "$REVIEWER_PANE" --source recent --lines 400 \
   | awk '/<<<<<SECOND_OPINION/{c=""; f=1; next} /SECOND_OPINION>>>>>/{f=0} f{c=c$0"\n"} END{printf "%s", c}'
 ```
 
@@ -178,14 +178,14 @@ but the markers are absent, two possibilities:
 - **Launch failed** (bad binary/flags exits instantly, which also lands on
   `done`) — the pane tail will show the error; report it.
 - **Premature `done`** (a non-hook CLI that went quiet mid-generation) — run
-  `sidekick-ctl wait output "$REVIEWER_PANE" "SECOND_OPINION>>>>>" --timeout
+  `cortland-ctl wait output "$REVIEWER_PANE" "SECOND_OPINION>>>>>" --timeout
   600000` once as a safety net, then re-read and slice. If the markers still
   never appear, read the last ~100 lines raw and report that.
 
 ## 6. Clean up and report
 
 ```sh
-sidekick-ctl pane close "$REVIEWER_PANE"   # only the pane you created
+cortland-ctl pane close "$REVIEWER_PANE"   # only the pane you created
 rm -f /tmp/so-$RID.md
 ```
 
@@ -221,7 +221,7 @@ deference to the reviewer and not reflexive defense of yourself.
   reasoning — just say so instead of closing it. A Claude reviewer remains an
   interactive session; one-shot reviewer processes have already exited.
 - Workers launched via `--exec` with `claude`/`codex` as the program inherit
-  Sidekick's scoped permission flags automatically; don't add your own
+  Cortland's scoped permission flags automatically; don't add your own
   permission-mode flags.
 - Never close panes you didn't create, or send input to a pane whose id/purpose
   you haven't verified via `pane list` or the split response.

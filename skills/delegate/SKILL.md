@@ -1,8 +1,8 @@
 ---
 name: delegate
-description: Delegate an implementation task to a worker agent in a visible Sidekick pane, supervise it, then independently review the result and iterate with feedback until it passes. The default worker matches the supervisor's family (Fable delegates to Opus; Codex sol delegates to terra), or name one explicitly ("delegate claude fable", "delegate codex terra"). Use when the user says "delegate this", "have opus do this", "send this to a worker", "spin up a worker for this", or wants the calling agent to hand off build work and act as the reviewer. The worker is a separate interactive CLI process driven via sidekick-ctl; the caller stays as supervisor.
-sidekick-palette: true
-sidekick-palette-label: Delegate to Worker
+description: Delegate an implementation task to a worker agent in a visible Cortland pane, supervise it, then independently review the result and iterate with feedback until it passes. The default worker matches the supervisor's family (Fable delegates to Opus; Codex sol delegates to terra), or name one explicitly ("delegate claude fable", "delegate codex terra"). Use when the user says "delegate this", "have opus do this", "send this to a worker", "spin up a worker for this", or wants the calling agent to hand off build work and act as the reviewer. The worker is a separate interactive CLI process driven via cortland-ctl; the caller stays as supervisor.
+cortland-palette: true
+cortland-palette-label: Delegate to Worker
 ---
 
 # Delegate
@@ -15,7 +15,7 @@ you own the spec and the verdict.
 
 This is the sibling of `second-opinion` with the roles reversed: there, the
 other agent judges your work; here, you judge the other agent's work. The pane
-conventions come from `sidekick-panes` — read pane IDs from responses, never
+conventions come from `cortland-panes` — read pane IDs from responses, never
 guess them, never close panes you didn't create.
 
 ## Preconditions
@@ -24,9 +24,9 @@ Three checks, in order — each failure means something different, so report the
 one that actually failed and stop (do not attempt the workflow degraded):
 
 ```sh
-test "$SIDEKICK_ENV" = 1   # not set → this terminal is not a Sidekick pane
-command -v sidekick-ctl    # missing → Sidekick's CLI is not installed/on PATH
-sidekick-ctl ping          # fails → Sidekick pane, but the control socket is
+test "$CORTLAND_ENV" = 1   # not set → this terminal is not a Cortland pane
+command -v cortland-ctl    # missing → Cortland's CLI is not installed/on PATH
+cortland-ctl ping          # fails → Cortland pane, but the control socket is
                            # unreachable (typical inside a codex sandbox —
                            # retry with escalated permissions before giving up)
 ```
@@ -34,8 +34,8 @@ sidekick-ctl ping          # fails → Sidekick pane, but the control socket is
 Then discover the layout:
 
 ```sh
-sidekick-ctl pane current    # record $ORIGIN_PANE and $ORIGIN_TAB
-sidekick-ctl pane list       # 4-pane tab limit: if full, ask before closing anything
+cortland-ctl pane current    # record $ORIGIN_PANE and $ORIGIN_TAB
+cortland-ctl pane list       # 4-pane tab limit: if full, ask before closing anything
 ```
 
 ## 1. Pick the worker
@@ -66,7 +66,7 @@ different id.
 
 ⚠️ Flag trap: the model flag is `--model` for claude but `-m` for codex.
 
-Workers launched with `claude`/`codex` as the program inherit Sidekick's scoped
+Workers launched with `claude`/`codex` as the program inherit Cortland's scoped
 permission flags automatically — do NOT add your own permission-mode flags.
 
 ## 2. Write the task packet
@@ -101,7 +101,7 @@ the same session with full context (example shows the default worker; swap in
 the provider/model chosen in step 1):
 
 ```sh
-sidekick-ctl pane split "$ORIGIN_PANE" --direction right --cwd "$PWD" --no-focus \
+cortland-ctl pane split "$ORIGIN_PANE" --direction right --cwd "$PWD" --no-focus \
   --exec claude --model opus -- "$(cat /tmp/delegate-$RID.md)"
 ```
 
@@ -111,7 +111,7 @@ concurrently editing yourself, add `--worktree <branch>` instead of `--cwd`
 since the supervisor should be reading, not writing, during delegation.
 
 > Each `--exec` argv item is capped at 32 KB. If the packet is bigger, do NOT
-> wrap the launch in `sh -c` — a wrapper hides the program from Sidekick's
+> wrap the launch in `sh -c` — a wrapper hides the program from Cortland's
 > approval-flag injection, so the worker can silently lose auto-approve. Keep
 > `claude` as the program and point at the file instead:
 > `--exec claude --model opus -- "Read /tmp/delegate-<RID>.md and do exactly what it says."`
@@ -119,7 +119,7 @@ since the supervisor should be reading, not writing, during delegation.
 ## 4. Wait, and handle the human-input case
 
 ```sh
-sidekick-ctl wait agent-status "$WORKER_PANE" done --timeout 900000
+cortland-ctl wait agent-status "$WORKER_PANE" done --timeout 900000
 ```
 
 The Stop hook flips the pane to `done` when the worker's turn completes, even
@@ -139,7 +139,7 @@ After `done`, extract the worker's summary (LAST marked block — the prompt ech
 contains the markers too):
 
 ```sh
-sidekick-ctl pane read "$WORKER_PANE" --source recent --lines 400 \
+cortland-ctl pane read "$WORKER_PANE" --source recent --lines 400 \
   | awk '/<<<<<DELEGATE_DONE/{c=""; f=1; next} /DELEGATE_DONE>>>>>/{f=0} f{c=c$0"\n"} END{printf "%s", c}'
 ```
 
@@ -152,7 +152,7 @@ Then verify yourself — the summary is a claim, not evidence:
 **If it fails review**, send one consolidated feedback round (not a drip):
 
 ```sh
-sidekick-ctl pane run "$WORKER_PANE" "Review feedback: <specific defects, file:line>. Fix these, re-run <tests>, and end with the same DELEGATE_DONE block."
+cortland-ctl pane run "$WORKER_PANE" "Review feedback: <specific defects, file:line>. Fix these, re-run <tests>, and end with the same DELEGATE_DONE block."
 ```
 
 Read the pane to confirm the prompt submitted (send `pane send-key

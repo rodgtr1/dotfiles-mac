@@ -1,6 +1,6 @@
 ---
 name: agent-deliberation
-description: Run two independent agents (Claude + Codex) against the same task in separate Sidekick panes, then have them cross-examine and revise each other's work over a fixed 4-stage pipeline, with a neutral third agent judging the final synthesis. Use when the user wants "agent deliberation", "have two agents debate", "Claude vs Codex on this", "build it twice and reconcile", or an adversarial-collaboration take on a task/post/answer/decision where one agent's blind spots should be caught by another.
+description: Run two independent agents (Claude + Codex) against the same task in separate Cortland panes, then have them cross-examine and revise each other's work over a fixed 4-stage pipeline, with a neutral third agent judging the final synthesis. Use when the user wants "agent deliberation", "have two agents debate", "Claude vs Codex on this", "build it twice and reconcile", or an adversarial-collaboration take on a task/post/answer/decision where one agent's blind spots should be caught by another.
 ---
 
 # Agent Deliberation
@@ -47,18 +47,18 @@ This skill reuses the proven mechanics of `second-opinion`. The non-obvious part
 
 ## Preconditions
 
-Must run inside an automation-enabled Sidekick pane:
+Must run inside an automation-enabled Cortland pane:
 
 ```sh
-test "$SIDEKICK_ENV" = 1 && command -v sidekick-ctl
+test "$CORTLAND_ENV" = 1 && command -v cortland-ctl
 ```
 
-If that fails, tell the user this skill needs to run inside Sidekick and stop.
+If that fails, tell the user this skill needs to run inside Cortland and stop.
 
 Find the origin pane + tab and record them:
 
 ```sh
-sidekick-ctl pane current   # record pane_id ($ORIGIN_PANE) and tab_id ($ORIGIN_TAB)
+cortland-ctl pane current   # record pane_id ($ORIGIN_PANE) and tab_id ($ORIGIN_TAB)
 ```
 
 Confirm `codex` is available (`command -v codex`). If it is missing, tell the user
@@ -72,7 +72,7 @@ the 3rd. The Stage-4 judge **reuses one of the two builder panes** (run a fresh 
 invocation in it) rather than opening a 4th — keep one slot free. Before splitting:
 
 ```sh
-sidekick-ctl pane list   # count panes whose tab_id == $ORIGIN_TAB
+cortland-ctl pane list   # count panes whose tab_id == $ORIGIN_TAB
 ```
 
 If the tab already has ≥3 panes, you can't fit both builders — tell the user and
@@ -90,8 +90,8 @@ Split two worker panes in the same tab (read each `result.pane.pane_id` from the
 JSON — never guess):
 
 ```sh
-sidekick-ctl pane split "$ORIGIN_PANE" --direction right --cwd "$PWD" --no-focus   # → $PANE_CLAUDE
-sidekick-ctl pane split "$ORIGIN_PANE" --direction down  --cwd "$PWD" --no-focus   # → $PANE_CODEX
+cortland-ctl pane split "$ORIGIN_PANE" --direction right --cwd "$PWD" --no-focus   # → $PANE_CLAUDE
+cortland-ctl pane split "$ORIGIN_PANE" --direction down  --cwd "$PWD" --no-focus   # → $PANE_CODEX
 ```
 
 `$PANE_CLAUDE` runs `claude -p`, `$PANE_CODEX` runs `codex exec` throughout. Keeping
@@ -109,11 +109,11 @@ For every worker run, do exactly this:
    prompt file begins with the anti-derail header verbatim, then the task/context
    **fully embedded inline**, then the marker spec at the end.
 2. **Launch** the CLI, passing the file via `cat`:
-   - Claude pane: `sidekick-ctl pane run "$PANE_CLAUDE" 'claude -p "$(cat '$D'/PROMPT.md)"'`
-   - Codex pane:  `sidekick-ctl pane run "$PANE_CODEX"  'codex exec "$(cat '$D'/PROMPT.md)"'`
+   - Claude pane: `cortland-ctl pane run "$PANE_CLAUDE" 'claude -p "$(cat '$D'/PROMPT.md)"'`
+   - Codex pane:  `cortland-ctl pane run "$PANE_CODEX"  'codex exec "$(cat '$D'/PROMPT.md)"'`
 3. **Confirm it actually started**, right after each launch:
    ```sh
-   sidekick-ctl wait agent-status "$PANE" working --timeout 60000   # it STARTED
+   cortland-ctl wait agent-status "$PANE" working --timeout 60000   # it STARTED
    ```
    `wait` exits non-zero on timeout. If this times out the launch failed — read
    the pane and report rather than assuming output.
@@ -125,24 +125,24 @@ For every worker run, do exactly this:
    ```sh
    DEADLINE=$(( $(date +%s) + 600 ))
    while :; do
-     STATES=$(sidekick-ctl pane list)   # authoritative; parse agent_status per worker pane
+     STATES=$(cortland-ctl pane list)   # authoritative; parse agent_status per worker pane
      # → every worker pane done?           break and extract
      # → any worker pane ready?            it is stuck waiting for input — read that
      #                                     pane, answer/allow if it's a prompt you can
      #                                     safely satisfy, else report to the user
      # → past $DEADLINE?                   read both panes and report the stall
-     sidekick-ctl wait event --type agent_state --timeout 30000 >/dev/null || true
+     cortland-ctl wait event --type agent_state --timeout 30000 >/dev/null || true
    done
    ```
    `wait event` (blocks until the *next* agent-state change anywhere) is just the
    efficient wakeup; `pane list` is the truth, so nothing is lost if an event fires
-   between iterations. On an older sidekick-ctl without `wait event`, substitute
+   between iterations. On an older cortland-ctl without `wait event`, substitute
    `sleep 5` — the loop still works, only the wakeup is cruder. For a
    single-pane stage (the Stage-4 judge), plain
-   `sidekick-ctl wait agent-status "$PANE" done --timeout 600000` is fine.
+   `cortland-ctl wait agent-status "$PANE" done --timeout 600000` is fine.
 5. **Extract and save** the marked block yourself:
    ```sh
-   sidekick-ctl pane read "$PANE" --source recent --lines 800 \
+   cortland-ctl pane read "$PANE" --source recent --lines 800 \
      | awk '/<<<<<DELIB/{c=""; f=1; next} /DELIB>>>>>/{f=0} f{c=c$0"\n"} END{printf "%s", c}' \
      > "$D/OUT.md"
    ```
@@ -218,8 +218,8 @@ Save → `$D/s4-final.md`. This is the deliverable.
 ## Clean up and report
 
 ```sh
-sidekick-ctl pane close "$PANE_CLAUDE"   # only panes you created
-sidekick-ctl pane close "$PANE_CODEX"
+cortland-ctl pane close "$PANE_CLAUDE"   # only panes you created
+cortland-ctl pane close "$PANE_CODEX"
 # keep $D for the user if they want the full transcript; otherwise: rm -rf "$D"
 ```
 
