@@ -6,6 +6,10 @@
 # command, this reads the hook JSON on stdin, extracts the command, and tests it
 # against the patterns in blocklist.txt. A match blocks the command.
 #
+# NOT REGISTERED. Nothing in settings.json / settings.local.json points at this
+# script, so it never runs on its own — only via --test below. To turn it on,
+# add a PreToolUse hook (matcher "Bash") whose command is this file's path.
+#
 #   exit 0  -> allow (no pattern matched, or nothing to check)
 #   exit 2  -> BLOCK; the reason on stderr is shown back to the agent
 #

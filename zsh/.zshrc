@@ -37,6 +37,15 @@ fi
 # (added to fpath above) and zsh's bundled completions (git, etc.) are picked up.
 autoload -Uz compinit && compinit -u
 
+# --- History ---
+# One shared history across all tabs/panes. SHARE_HISTORY writes each command
+# to $HISTFILE as it runs and pulls in other sessions' commands live (macOS's
+# /etc/zshrc only saves on shell exit, so tabs never saw each other). The size
+# bump overrides /etc/zshrc's 2000/1000, which silently truncated the file.
+HISTSIZE=50000
+SAVEHIST=50000
+setopt SHARE_HISTORY
+
 # User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
@@ -175,9 +184,6 @@ nvm() {
   nvm "$@"
 }
 
-# Sidekick shell integration
-[[ "$TERM_PROGRAM" == "Sidekick" ]] && source "$HOME/.config/sidekick/shell-integration/sidekick.zsh"
-
 # Machine-specific local config
 # Not version controlled
 if [[ -f "$HOME/.zshrc.local" ]]; then
@@ -188,3 +194,6 @@ fi
 # Use the hardcoded prefix instead of $(brew --prefix) to avoid a subprocess on
 # every shell start. Must be sourced after compinit.
 source "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+
+# Cortland shell integration
+[[ "$TERM_PROGRAM" == "Cortland" ]] && source "$HOME/.config/cortland/shell-integration/cortland.zsh"

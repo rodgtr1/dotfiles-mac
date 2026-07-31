@@ -1,7 +1,9 @@
 # dcg-guard.rules — Destructive Command Guard for Codex (execpolicy).
 #
-# Codex auto-loads every *.rules file under ~/.codex/rules/ at startup, so this
-# file sits ALONGSIDE your existing default.rules (which is left untouched).
+# NOT ACTIVE. Codex auto-loads every *.rules file under ~/.codex/rules/, so this
+# one is parked in ~/.codex/rules-disabled/ instead. To turn it on, link or copy
+# it into ~/.codex/rules/ (repo: move it back to codex/.codex/rules/ so stow
+# does that for you). Until then it only runs when you pass --rules explicitly.
 #
 # Each prefix_rule matches a command by its leading TOKENS (not regex). Codex
 # splits linear command chains (a && b, a | b) and evaluates each segment, and
@@ -15,7 +17,7 @@
 # stay in sync.
 #
 # Test after editing (exit shows the decision):
-#   codex execpolicy check --pretty --rules ~/.codex/rules/dcg-guard.rules -- rm -rf /
+#   codex execpolicy check --pretty --rules ~/.codex/rules-disabled/dcg-guard.rules -- rm -rf /
 #
 # LIMITATION: prefix matching cannot express "flag anywhere" or "value like
 # /dev/*". A few things the Claude regex catches are only partially covered here
