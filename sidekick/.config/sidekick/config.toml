@@ -34,7 +34,7 @@ word_wrap = true
 [font]
 bold_is_bright = true
 family = 'JetBrainsMono Nerd Font'
-size = 17
+size = 16
 
 [notifications]
 background_grace_seconds = 0
@@ -51,9 +51,9 @@ default_cwd = '~'
 program = ''
 
 [theme]
-name = 'catppuccin-mocha'
+name = 'catppuccin-macchiato'
 
 [window]
 enable_blur = true
 opacity = 0.95645065539513685
-padding = 8
+padding = 10
