@@ -48,6 +48,8 @@ the usual pairings are Fable supervising Opus, and Codex sol supervising terra:
 
 - Supervisor is claude (Fable) → worker `claude --model opus`
 - Supervisor is codex (sol)    → worker `codex -m terra`
+- Supervisor is pi             → follow the model pi is running: a Claude model
+  → worker `claude --model opus`; an OpenAI model → worker `codex -m terra`
 
 Explicit forms, when the user names the pair (it may differ run to run):
 

@@ -164,6 +164,10 @@ if [ -d "$DOTFILES/skills" ]; then
     stow --restow --dir="$DOTFILES" --target="$tgt" skills \
       || warn "  stow skills -> $tgt failed — skipping."
   done
+
+  # pi gets only the delegate skill, not the whole package.
+  mkdir -p "$HOME/.pi/agent/skills"
+  ln -sfn "$DOTFILES/skills/delegate" "$HOME/.pi/agent/skills/delegate"
 fi
 
 log "All done."

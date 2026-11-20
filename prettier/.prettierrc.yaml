@@ -1,0 +1,31 @@
+# Global Prettier defaults.
+#
+# Prettier looks for a config file starting in the folder of the file being
+# formatted and walking up. Anything under your home folder with no config of
+# its own ends up here. A project that has its own .prettierrc (or a "prettier"
+# key in package.json) uses that file instead, and ignores this one entirely:
+# the two are not merged.
+#
+# Every value below is Prettier's own default, written out so there is
+# something to change. Edit a line and it applies everywhere that has no
+# project config.
+
+printWidth: 80            # wrap lines longer than this
+tabWidth: 2               # spaces per indent level
+useTabs: false            # true indents with tabs
+semi: true                # false drops semicolons in JS/TS
+singleQuote: false        # true uses 'single' quotes in JS/TS
+jsxSingleQuote: false     # true uses single quotes in JSX attributes
+quoteProps: as-needed     # as-needed | consistent | preserve
+trailingComma: all        # all | es5 | none
+bracketSpacing: true      # { a: 1 } rather than {a: 1}
+bracketSameLine: false    # true keeps the closing > of a tag on the last line
+arrowParens: always       # always: (x) => x   avoid: x => x
+proseWrap: preserve       # Markdown: preserve | always | never
+endOfLine: lf
+
+# Per-language exceptions go here, for example 4-space Markdown lists:
+# overrides:
+#   - files: "*.md"
+#     options:
+#       tabWidth: 4

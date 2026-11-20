@@ -12,6 +12,7 @@ symlinks it into the right place.
 |------------|--------------------------------------------------------------------|
 | `zsh`      | `~/.zshrc`, `~/.zshenv`, `~/.zprofile`                             |
 | `starship` | `~/.config/starship.toml`                                          |
+| `prettier` | `~/.prettierrc.yaml`                                              |
 | `sidekick` | `~/.config/sidekick/config.toml`                                  |
 | `zed`      | `~/.config/zed/settings.json`                                     |
 | `nvim`     | `~/.config/nvim/`                                                  |

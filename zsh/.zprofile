@@ -1,3 +1,6 @@
+# The following lines were added by Docker Desktop to add commands to your PATH.
+export PATH="$PATH:/Users/travis/.docker/bin"
+# End of Docker Desktop section.
 
 # >>> Codex installer >>>
 export PATH="$HOME/.local/bin:$PATH"

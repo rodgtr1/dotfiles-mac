@@ -197,3 +197,16 @@ source "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
 # Cortland shell integration
 [[ "$TERM_PROGRAM" == "Cortland" ]] && source "$HOME/.config/cortland/shell-integration/cortland.zsh"
+
+# >>> railway initialize >>>
+source "$HOME/.railway/env"
+# <<< railway initialize <<<
+
+shots() {
+  local dir="${1:-$PWD}"
+  [[ "$1" == "reset" ]] && dir="$HOME/Desktop"
+  dir="${dir:A}"
+  defaults write com.apple.screencapture location "$dir"
+  killall SystemUIServer 2>/dev/null
+  echo "Screenshots and recordings now save to: $dir"
+}
