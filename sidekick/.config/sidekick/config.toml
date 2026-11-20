@@ -28,6 +28,8 @@ context_lines = 3
 file_open_mode = 'builtin'
 font_family = 'JetBrainsMono Nerd Font'
 font_size = 17
+live_reload = true
+markdown_read_mode = true
 show_hidden_files = true
 word_wrap = true
 
@@ -55,5 +57,5 @@ name = 'catppuccin-macchiato'
 
 [window]
 enable_blur = true
-opacity = 0.95645065539513685
+opacity = 0.96577898780664118
 padding = 10
